@@ -28,6 +28,7 @@
 | 把规格或讨论拆成工单 | `to-tickets` |
 | 按规格或工单实现 | `implement` |
 | 深模块与架构加深审计 | `improve-codebase-architecture` |
+| 架构 wiki（默认 2D，可加 3D） | `architecture-wiki` |
 | 换会话交接 | `handoff` |
 | 为仓库配置 tracker、标签与领域文档 | `setup-matt-pocock-skills` |
 

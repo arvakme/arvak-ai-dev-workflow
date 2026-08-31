@@ -165,7 +165,7 @@ function options(argv) {
 	const defaults = {
 		firecode: join(homedir(), "Project", "firecode"),
 		skills: join(homedir(), ".agents", "skills"),
-		architecture: join(homedir(), "Project", "architecture-wiki"),
+		architecture: join(homedir(), "Job", "intern", "architecture-wiki-3d"),
 		system: join(homedir(), ".pi", "agent", "SYSTEM.md"),
 	};
 	for (let index = 0; index < argv.length; index += 2) {

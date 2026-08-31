@@ -1,7 +1,7 @@
 ---
 name: architecture-wiki
 disable-model-invocation: true
-description: 在目标仓库建立并维护 docs/architecture/：Markdown wiki 事实源 + 自包含可视化 + verify 过期检查接入 lint/CI，附死代码/循环依赖/热点体检页。
+description: 在目标仓库建立并维护 docs/architecture/：Markdown wiki 事实源 + 2D 等距可视化（默认）或可选 3D 正交城 + verify 过期检查接入 lint/CI，附死代码/循环依赖/热点体检页。
 compatibility: 需要 Node.js 18+ 与 git；JS/TS 仓库的依赖图另需 bun 或 npm。
 ---
 
@@ -19,7 +19,11 @@ compatibility: 需要 Node.js 18+ 与 git；JS/TS 仓库的依赖图另需 bun �
 
 ```
 docs/architecture/
-├── architecture.html   # 派生可视化，嵌 wiki-digest
+├── architecture.html   # 2D 等距 SVG，嵌 wiki-digest
+├── data.json           # 派生产物，2D / 3D 共用
+├── 3d/                 # 可选：正交 Three.js，读 ../data.json
+│   ├── index.html
+│   └── city.js
 ├── verify.mjs          # 从本 skill templates/ 复制，零依赖
 └── wiki/
     ├── index.md        # 导航目录 + baseline commit + 豁免清单
@@ -60,7 +64,7 @@ verify 检查：来源文件存在且哈希一致（不一致时直接打印记�
    frontmatter 按上面的约定填齐。完成标准：抽两页自测——读完能答「这模块负责什么、谁在用它、改它先看哪个文件」，答不上的页重写。模块页 ≥3 且 subagents 可用时，读 [FANOUT.md](./FANOUT.md) 并行派工，总览页自己写。
 3. 体检：读 [HEALTH.md](./HEALTH.md)，跑命令、复核、产出 wiki/health.md 与节点 health 字段。
 4. 复制 [templates/verify.mjs](./templates/verify.mjs) 到 `docs/architecture/verify.mjs`，运行一次直到通过。
-5. 渲染 HTML：读 [RENDER.md](./RENDER.md)，用 templates/architecture.html 模板注入数据 JSON，不手写界面。完成标准：verify 通过（数据侧问题全由 verify 硬检，不需浏览器验证）。通过后 `open docs/architecture/architecture.html` 把成品打开给用户（仅首建；同步不自动打开）。
+5. 渲染 HTML：读 [RENDER.md](./RENDER.md)。**默认只出 2D**（`templates/architecture.html` → `architecture.html`）。用户要 3D、或说两种都要时，再复制 `templates/3d/` 到 `docs/architecture/3d/`，同一份 `data.json`。不手写界面。完成标准：verify 通过（数据侧问题全由 verify 硬检，不需浏览器验证）。通过后打开给用户（仅首建；同步不自动打开）：2D 用 `open docs/architecture/architecture.html`；3D 需要静态服务（`file://` 下 fetch 会失败）。
 6. 接入 lint：在仓库现有检查入口（package.json scripts / justfile / Makefile / CI workflow）追加 `node docs/architecture/verify.mjs`，与现有 lint、typecheck 并列一起跑；不塞进 linter 插件内部。仓库 linter 扫全仓时把 `docs/architecture` 加进其忽略清单——派生产物与零依赖脚本不受项目代码风格约束，接入后跑一次完整检查确认不互咬。仓库完全没有检查入口时，新建最小入口只跑 verify（如 package.json 加 `"lint": "node docs/architecture/verify.mjs"`，或 CI 加一步）；verify 零依赖，只需 node + git。
 
 ## 同步（代码变更后，或 verify 报错时）
@@ -68,4 +72,4 @@ verify 检查：来源文件存在且哈希一致（不一致时直接打印记�
 1. 跑 `node docs/architecture/verify.mjs`：过期来源会直接打印记录版本 → 工作区的 unified diff，标「疑似机械漂移」的可快速略过；无 diff 可出时（记录的 blob 未入对象库，如上次 sync 时改动尚未提交）退回 `git diff <baseline>.. -- <file>` 自查。
 2. 按 diff 逐页二选一：页面论断受影响 → 改正文；确认不受影响（注释、格式、不改变论断的实现细节）→ 正文不动。新增文件被认领对账报出时，归入某页 covers 或说明理由进 exclude。verify 提示体检报告落后时，按 [HEALTH.md](./HEALTH.md) 重跑刷新 health.md 与节点标记。禁止未读 diff 就进入下一步——--sync 即签字“已审阅这些变更”。
 3. `node docs/architecture/verify.mjs --sync`：一次性刷新全部过期哈希前缀并把 baseline 推进到当前 HEAD；symbol 消失、断链等语义问题不会被自动修，照常报错手工处理。
-4. 改过正文才需重渲染 architecture.html（digest 只算正文，纯刷哈希不影响；digest 取 `node docs/architecture/verify.mjs --digest`）。跑 verify 通过后结束。
+4. 改过正文才需重渲染：2D 重写 `architecture.html`；若仓库里已有 `3d/`，3D 不用重写页面，它读同一份 `data.json`（digest 只算正文，纯刷哈希不影响；digest 取 `node docs/architecture/verify.mjs --digest`）。跑 verify 通过后结束。

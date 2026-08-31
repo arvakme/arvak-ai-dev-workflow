@@ -1,6 +1,15 @@
 # Architecture HTML 渲染规范
 
-渲染是模板驱动的，保证任何仓库、任何 agent 产出几乎一致的界面：复制 [templates/architecture.html](./templates/architecture.html)，把 `__ARCH_DATA__` 替换为数据 JSON、`__TITLE__` 替换为标题、`__WIKI_DIGEST__` 替换为 `node docs/architecture/verify.mjs --digest` 的输出，写入 `docs/architecture/architecture.html`；数据 JSON 同时存为 `docs/architecture/data.json`（派生产物，随渲染更新，供增量微调与 diff）。视觉语言全部固化在模板里：森纸单主题（暖纸底 + 墨绿主色，分区鼠尾草绿/陶土/雾蓝）、等距城市、总览/多场景切换与白色流光、节点聚焦显示其跨场景数据流、侧边栏分组折叠与过滤、左右两栏整体可收起、平移缩放；体检命中的节点带警示标（楼顶与侧边栏），点击跳体检页对应小节。要改视觉改模板，不逐仓库定制。
+渲染是模板驱动的。**同一份 `data.json`，两种壳**：
+
+| 模式 | 何时出 | 模板 | 落点 | 约束 |
+| --- | --- | --- | --- | --- |
+| **2D**（默认） | 总是 | [templates/architecture.html](./templates/architecture.html) | `docs/architecture/architecture.html` | 单文件自包含，零外部资源；`open` 即可 |
+| **3D**（可选） | 用户要 3D / 两种都要 | [templates/3d/](./templates/3d/) | `docs/architecture/3d/{index.html,city.js}` | 读 `../data.json`；three.js 走 jsDelivr；需静态服务 |
+
+2D：把 `__ARCH_DATA__` 替换为数据 JSON、`__TITLE__` 替换为标题、`__WIKI_DIGEST__` 替换为 `node docs/architecture/verify.mjs --digest` 的输出。数据 JSON 同时存为 `docs/architecture/data.json`（派生产物，随渲染更新，供增量微调与 diff）。视觉语言全部固化在 2D 模板里：森纸单主题（暖纸底 + 墨绿主色，分区鼠尾草绿/陶土/雾蓝）、等距城市、总览/多场景切换与白色流光、节点聚焦显示其跨场景数据流、侧边栏分组折叠与过滤、左右两栏整体可收起、平移缩放；体检命中的节点带警示标（楼顶与侧边栏），点击跳体检页对应小节。要改 2D 视觉改该模板，不逐仓库定制。
+
+3D 是正交 Three.js 城实验，名牌避让仍粗；不要当默认、不要替代 verify。布局几何红线仍按下面的等距 2D 约束写 `data.json`——3D 只是换壳。
 
 **零手写论断**：HTML 中关于代码库的每一句话，要么是嵌入的 wiki 页原文直接渲染，要么由图数据确定性派生（上下游、参与场景、分区/模块/文件的计数与行数）。数据 JSON 里不出现独立撰写的功能/原理文字，也不写界面使用说明（交互靠界面自解释）。内容不够好去改 wiki 页，不在 JSON 里补写。
 
