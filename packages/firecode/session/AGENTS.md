@@ -1,6 +1,6 @@
 # session：会话层功能
 
-预设、改名、`/tokens`、Bark 通知、herdr 身份投影、工作火焰。各功能互不依赖，关掉任何一个不影响其余。
+预设、改名、`/tokens`、herdr 身份投影、工作火焰。各功能互不依赖，关掉任何一个不影响其余。通知走 Moshi，这里没有 Bark。
 
 | 文件 | 职责 |
 | --- | --- |
@@ -8,15 +8,12 @@
 | `rename.ts` | `/rename` 与 `keys.rename` 改会话名 |
 | `herdr-display.ts` | 会话身份投影到 herdr 的 agent 副标题 |
 | `stats.ts` | `/tokens` 扫会话 jsonl 统计 token 与成本（源自 pi-token-stats, MIT） |
-| `bark.ts` | 任务落定时推 iPhone Bark 通知 |
 | `working-flame.ts` | 工作回合内 aboveEditor 居中多行火焰 widget |
 
 预设的 `model` 是模型原子（`provider/model/thinking`），模型与思考档一起切换：模型切换失败时思考档也不动。
 调 Pi 接口前才把 provider 与模型名拆开。
 
 预设名写入会话记录，重开会话只恢复名字与附加指令，不重放模型和工具切换。
-
-bark：同会话固定 id 新顶旧，有子代理待拍板升 timeSensitive（只读 `master/state.ts` 持久化），Worker 静默。
 
 working-flame：高随终端自适应 3–10 行，宽不够逐级降高；回合内隐藏 Working 文本行，订阅占用频道在审查
 活跃期退让。

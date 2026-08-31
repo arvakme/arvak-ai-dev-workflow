@@ -886,7 +886,7 @@ test("显式 observer 角色不注册 Master 工具面", async () => {
 			features: {
 				header: false, statusbar: false, tools: false, presets: false, rename: false,
 				stats: false, claudeSub: false, openaiNative: false, workingFlame: false,
-				bark: false, review: false, master: true, watcher: false,
+				review: false, master: true, watcher: false,
 			},
 			review: TEST_REVIEW_CONFIG,
 			master: { roles: { 工程师: TEST_ROLES.工程师 }, workerExcludeExtensions: [], autoActivate: true },

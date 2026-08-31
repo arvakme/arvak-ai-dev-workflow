@@ -142,7 +142,7 @@ test("FireCode 通过现有 loader 接缝可加载", async () => {
 	expect(typeof module.default).toBe("function");
 });
 
-test("FireCode 公开模板启用推荐工作流但保持 Bark 关闭", async () => {
+test("FireCode 公开模板启用推荐工作流且不含 Bark", async () => {
 	const loader = await loadFirecodeTestModule();
 	if (!loader) return;
 	firecodeLoader = loader;
@@ -153,6 +153,6 @@ test("FireCode 公开模板启用推荐工作流但保持 Bark 关闭", async ()
 	for (const feature of ["openaiNative", "master", "review", "watcher"])
 		expect(loaded.config.features[feature]).toBe(true);
 	expect(loaded.config.features.claudeSub).toBe(false);
-	expect(loaded.config.features.bark).toBe(false);
+	expect(loaded.config.features.bark).toBeUndefined();
 	expect(loaded.config.watcher.enabled).toBe(true);
 });

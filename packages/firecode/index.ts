@@ -10,7 +10,6 @@ import { registerOpenAINative } from "./provider/openai-native/index.js";
 import { registerPresets } from "./session/presets.js";
 import { registerHerdrDisplay } from "./session/herdr-display.js";
 import { registerSessionName } from "./session/rename.js";
-import { registerBark } from "./session/bark.js";
 import { registerStats } from "./session/stats.js";
 import { registerWorkingFlame } from "./session/working-flame.js";
 import { registerStatusBar } from "./statusbar/index.js";
@@ -20,7 +19,7 @@ import { registerMaster } from "./master/index.js";
 import { currentSubsessionRole } from "./master/role.js";
 import { registerWatcher } from "./watcher/index.js";
 
-const REGISTRARS: Record<Exclude<Feature, "review" | "master" | "watcher" | "statusbar" | "bark">, (pi: ExtensionAPI) => void> = {
+const REGISTRARS: Record<Exclude<Feature, "review" | "master" | "watcher" | "statusbar">, (pi: ExtensionAPI) => void> = {
 	header: registerHeader,
 	tools: registerToolRendering,
 	presets: registerPresets,
@@ -38,11 +37,10 @@ export function registerFirecode(pi: ExtensionAPI, role: FirecodeSessionRole = "
 	const subsession = role !== "main";
 	const reviewEnabled = config.features.review !== false;
 	for (const [feature, register] of Object.entries(REGISTRARS)) {
-		const enabled = config.features[feature as Exclude<Feature, "review" | "master" | "watcher" | "statusbar" | "bark">] !== false;
+		const enabled = config.features[feature as Exclude<Feature, "review" | "master" | "watcher" | "statusbar">] !== false;
 		if (enabled) register(pi);
 	}
 	if (config.features.statusbar !== false) registerStatusBar(pi, subsession);
-	if (config.features.bark !== false) registerBark(pi, subsession);
 	if (config.features.watcher !== false) registerWatcher(pi, {}, subsession);
 	if (config.features.master !== false) registerMaster(pi, {}, subsession);
 	// herdr 显示投影没有开关：herdr 之外自我禁用，只写显示层。

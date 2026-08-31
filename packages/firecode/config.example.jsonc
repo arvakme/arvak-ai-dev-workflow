@@ -1,5 +1,5 @@
 {
-	// arvak：模型一律 "provider/model/thinking"。Bark 默认关。
+	// arvak：模型一律 "provider/model/thinking"。通知走 Moshi，没有 Bark。
 	"features": {
 		"header": true,
 		"statusbar": true,
@@ -10,7 +10,6 @@
 		"claudeSub": false,
 		"openaiNative": true,
 		"workingFlame": true,
-		"bark": false,
 		"review": true,
 		"master": true,
 		"watcher": true

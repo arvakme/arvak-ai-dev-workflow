@@ -10,7 +10,7 @@ arvak 的 Pi coding 工作流：**FireCode** + **BCU** + **Skills**。
 pi install ~/Devs/workstation
 ```
 
-仓库根 `package.json` 声明了 `pi.extensions`（FireCode）和 `pi.skills`。运行配置在 `~/.pi/agent/extensions/firecode/config.jsonc`。Pi 自己的模型/密钥在 `~/.pi/agent/`，不进这个仓库。不要把 `packages/pi-config/SYSTEM.md` 覆盖到本机 `SYSTEM.md`。
+仓库根 `package.json` 声明了 `pi.extensions`（FireCode）和 `pi.skills`。运行配置在 `~/.pi/agent/extensions/firecode/config.jsonc`。Pi 自己的模型/密钥在 `~/.pi/agent/`，不进这个仓库。不要把 `packages/pi-config/SYSTEM.md` 覆盖到本机 `SYSTEM.md`。通知走 Moshi，这个仓库没有 Bark。
 
 BCU 需要原生 helper，见 `packages/better-computer-use/README.md`。
 

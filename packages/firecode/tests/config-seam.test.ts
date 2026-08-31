@@ -77,7 +77,6 @@ test("runtime config enables only its declared behavior", async () => {
 			"claudeSub",
 			"openaiNative",
 			"workingFlame",
-			"bark",
 			"review",
 			"master",
 			"watcher",
@@ -174,13 +173,14 @@ test("公共配置模板可解析并启用完整推荐工作流", async () => {
 	const loaded = (loadConfig as () => { config: any; problems: string[] })();
 
 	expect(loaded.problems).toEqual([]);
-	for (const feature of ["claudeSub", "openaiNative", "review", "master", "watcher"])
+	for (const feature of ["openaiNative", "review", "master", "watcher"])
 		expect(loaded.config.features[feature]).toBeTrue();
-	expect(loaded.config.features.bark).toBeFalse();
+	expect(loaded.config.features.claudeSub).toBeFalse();
+	expect(loaded.config.features.bark).toBeUndefined();
 	expect(loaded.config.master.autoActivate).toBeTrue();
 	expect(loaded.config.master.roles.map((entry: any) => entry.role)).toEqual([
 		"调研员", "工程师", "全栈", "架构师", "设计师", "哨兵",
 	]);
 	expect(loaded.config.watcher.enabled).toBeTrue();
-	expect(configJsonc).toContain("每个主会话回合后调用模型");
+	expect(configJsonc).toContain("通知走 Moshi，没有 Bark");
 });
