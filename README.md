@@ -18,7 +18,7 @@ BCU 需要原生 helper，见 `packages/better-computer-use/README.md`。
 
 `upstream` 是 [Suge8/my-agent-workstation](https://github.com/Suge8/my-agent-workstation)。这边拆掉的是终端模板，不是 BCU / Skills。
 
-`architecture-wiki` 的事实源是 [arvakme/architecture-wiki](https://github.com/arvakme/architecture-wiki)：默认 2D 等距，要 3D 或两种都要时跟 agent 说。不要从 Suge8 整包 sync 这一份。
+`architecture-wiki` 的事实源是 [arvakme/architecture-wiki](https://github.com/arvakme/architecture-wiki)：默认 2D 等距，要 3D 或两种都要时跟 agent 说。不要从 Suge8 整包 sync 这一份。流程图走 `/tldraw-offline`（本机 tldraw Desktop），和 wiki 的 HTML 城不是一回事。
 
 要偷上游某段，按需 cherry-pick，不要整仓 merge。`npm run sync` 会从本机维护源整目录覆盖 `packages/firecode` 和 `packages/skills`，本地改过就别跑。
 

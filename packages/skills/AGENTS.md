@@ -29,6 +29,7 @@
 | 按规格或工单实现 | `implement` |
 | 深模块与架构加深审计 | `improve-codebase-architecture` |
 | 架构 wiki（默认 2D，可加 3D） | `architecture-wiki` |
+| tldraw 流程图（`/tldraw-offline`） | `tldraw-offline` |
 | 换会话交接 | `handoff` |
 | 为仓库配置 tracker、标签与领域文档 | `setup-matt-pocock-skills` |
 
