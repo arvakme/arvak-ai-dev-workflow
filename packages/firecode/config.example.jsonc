@@ -1,5 +1,5 @@
 {
-	// arvak：模型一律 "provider/model/thinking"。通知走 Moshi，没有 Bark。
+	// arvak：模型一律 "provider/model/thinking"。通知走 Moshi。工作火焰关着，占行。
 	"features": {
 		"header": true,
 		"statusbar": true,
@@ -9,7 +9,7 @@
 		"stats": true,
 		"claudeSub": false,
 		"openaiNative": true,
-		"workingFlame": true,
+		"workingFlame": false,
 		"review": true,
 		"master": true,
 		"watcher": true
