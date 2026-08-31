@@ -3,7 +3,7 @@
 Pi 定制层：启动横幅、底部状态栏、工具行渲染、预设与重命名、Anthropic OAuth 归因、`/fire-review`
 对抗性审查、默认激活的 `/fire-master` 多 Agent 主控与 `/fire-watch` 观察员。
 
-这是本工作站的源码，直接改这里，不要再 `npm run sync` 从别人的快照覆盖。
+这是本工作站的工作副本，直接改这里。`npm run sync` 会从维护源整目录覆盖 `packages/firecode` 和 `packages/skills`，本地改过就别跑。
 
 单一入口 `index.ts` 只做一件事：按 `config.features` 逐个调 `registerX(pi)`。每个 register 封闭自己的运行
 状态，关掉任何一个不影响其余；跨模块接缝只有六条：Master 只读调 `review/outcome.ts`，bark 只读调
