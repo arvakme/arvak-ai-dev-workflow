@@ -4,7 +4,7 @@ FireCode 是一个模块化 Pi Package，提供终端状态与工具渲染、会
 
 ## 安装
 
-本目录在 kazelis 工作站里，经仓库根 `package.json` 作为 Pi package 安装：
+本目录在 arvak-ai-dev-workflow 里，经仓库根 `package.json` 作为 Pi package 安装：
 
 ```bash
 pi install ~/Devs/workstation

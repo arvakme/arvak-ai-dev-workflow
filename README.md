@@ -1,6 +1,6 @@
 # arvak-ai-dev-workflow
 
-kazelis 的 Pi coding 工作流： **FireCode** + **BCU** + **Skills**。
+arvak 的 Pi coding 工作流：**FireCode** + **BCU** + **Skills**。
 
 终端、窗管、SketchyBar 在 [`~/.config`](https://github.com/arvakme/dotfiles)（Kitty + AeroSpace），不在这个仓库。不要装 Ghostty / Starship，也不要跑上游 `SETUP.md`。
 

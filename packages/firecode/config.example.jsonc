@@ -1,5 +1,5 @@
 {
-	// kazelis：模型一律 "provider/model/thinking"。Bark 默认关。
+	// arvak：模型一律 "provider/model/thinking"。Bark 默认关。
 	"features": {
 		"header": true,
 		"statusbar": true,
