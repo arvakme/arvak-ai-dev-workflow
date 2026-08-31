@@ -11,4 +11,4 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: oven-sh/setup-bun@v2
-      - run: bun run test:sync
+      - run: bun run test

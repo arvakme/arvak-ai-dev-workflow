@@ -4,28 +4,17 @@ FireCode 是一个模块化 Pi Package，提供终端状态与工具渲染、会
 
 ## 安装
 
-```bash
-pi install git:github.com/Suge8/firecode@v0.6.1
-```
-
-也可在本地仓库中直接试用：
+本目录在 kazelis 工作站里，经仓库根 `package.json` 作为 Pi package 安装：
 
 ```bash
-pi -e .
+pi install ~/Devs/workstation
 ```
 
-Pi Package 拥有与 Pi 相同的本机权限；安装前应审阅源码。
+Pi Package 拥有与 Pi 相同的本机权限。
 
 ## 配置
 
-运行配置不随包分发。将公开模板复制到 Pi Agent 目录后按需启用功能，再重启 Pi：
-
-```bash
-agent_dir="${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}"
-mkdir -p "$agent_dir/extensions/firecode"
-curl -fsSL https://raw.githubusercontent.com/Suge8/firecode/v0.6.1/config.example.jsonc \
-  -o "$agent_dir/extensions/firecode/config.jsonc"
-```
+运行配置在 `~/.pi/agent/extensions/firecode/config.jsonc`。模板是同目录 `config.example.jsonc`。
 
 公开模板提供维护者当前的完整推荐配置：除 Bark 外功能全开，Master 与 Watcher 在新会话自动激活。Watcher 会在每个主会话回合后调用模型，OpenAI priority 会按供应商规则加价；复制前应确认列出的模型均已认证并接受额外费用。配置里指定模型一律写 `"provider/model/thinking"`；审查与观察员的模型必须显式写入运行配置，否则对应功能拒绝启动。缺少运行配置时，FireCode 会关闭可选功能并在会话启动时警告；配置模板本身不会被运行时读取。
 
