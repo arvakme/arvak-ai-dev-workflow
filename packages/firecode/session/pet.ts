@@ -1,13 +1,12 @@
-/** Butler owns one non-capturing overlay; a zero-height widget owns its disposal. */
+/** Butler owns non-capturing silhouette strips; a zero-height widget owns their disposal. */
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import type { Component, OverlayHandle, OverlayOptions, TUI, TuiMouseEvent, TuiMouseEventResult } from "@earendil-works/pi-tui";
-import { butlerFrame, type ButlerState } from "./butler-frames.js";
+import { BUTLER_MAX_SEGMENTS, butlerFrame, butlerSegments, type ButlerSegment, type ButlerState } from "./butler-frames.js";
 
 const WIDGET = "firecode-butler";
 const POSITION = "firecode-butler-position";
 type Position = { x: number; y: number };
 const clamp = (value: number) => Math.max(0, Math.min(1, value));
-const percent = (value: number): `${number}%` => `${Number((value * 100).toFixed(4))}%`;
 
 export class ButlerWidget implements Component {
 	private frame = 0;
@@ -15,7 +14,8 @@ export class ButlerWidget implements Component {
 	private dragging: { screenX: number; screenY: number; col: number; row: number; moved: boolean } | undefined;
 	private timer: ReturnType<typeof setInterval> | undefined;
 	private lastClick: { time: number; x: number; y: number } | undefined;
-	private readonly handle: OverlayHandle;
+	private readonly handles: OverlayHandle[];
+	private snapshot: { key: string; segments: ButlerSegment[] } | undefined;
 	private disposed = false;
 
 	constructor(
@@ -26,15 +26,38 @@ export class ButlerWidget implements Component {
 		private folded = false,
 	) {
 		const self = this;
-		const options: OverlayOptions = {
-			nonCapturing: true,
-			get width() { return self.folded ? 1 : tui.terminal.columns >= 18 && tui.terminal.rows >= 24 ? 17 : tui.terminal.columns >= 6 ? 5 : 1; },
-			get row() { return self.folded ? "0%" : percent(self.position.y); },
-			get col() { return self.folded ? "100%" : percent(self.position.x); },
-			get margin() { return { right: tui.terminal.columns > 1 ? 1 : 0, bottom: self.bottomMargin }; },
-		};
-		this.handle = tui.showOverlay(this, options);
+		this.handles = Array.from({ length: BUTLER_MAX_SEGMENTS }, (_, index) => {
+			const segment = () => self.segments[index];
+			const options: OverlayOptions = {
+				nonCapturing: true,
+				visible: () => segment() !== undefined,
+				get width() { return segment()?.width ?? 1; },
+				get row() { return self.bounds.row + (segment()?.row ?? 0); },
+				get col() { return self.bounds.col + (segment()?.col ?? 0); },
+			};
+			return tui.showOverlay({
+				render: () => segment() ? [segment()!.text] : [],
+				invalidate() {},
+				handleMouse: event => self.handleMouse(event),
+			}, options);
+		});
 		this.syncAnimation();
+	}
+	private get bounds() {
+		const { columns, rows } = this.tui.terminal;
+		const width = this.folded ? 1 : columns >= 18 && rows >= 24 ? 17 : columns >= 6 ? 5 : 1;
+		const height = width === 17 ? 6 : 1;
+		return { width, height,
+			col: Math.floor(Math.max(0, columns - width - (columns > 1 ? 1 : 0)) * (this.folded ? 1 : this.position.x)),
+			row: this.folded ? 0 : Math.floor(Math.max(0, rows - height - this.bottomMargin) * this.position.y),
+		};
+	}
+	private get segments(): ButlerSegment[] {
+		const width = this.bounds.width, rows = this.tui.terminal.rows;
+		const key = `${this.state}:${this.frame}:${width}:${rows}`;
+		if (this.snapshot?.key !== key)
+			this.snapshot = { key, segments: butlerSegments(this.state, this.frame, width, rows) };
+		return this.snapshot.segments;
 	}
 	private syncAnimation(): void {
 		clearInterval(this.timer);
@@ -60,19 +83,20 @@ export class ButlerWidget implements Component {
 	handleMouse(event: TuiMouseEvent): TuiMouseEventResult | undefined {
 		if (this.disposed) return undefined;
 		if (event.type === "press" && event.button === "left") {
-			const bounds = this.handle.getBounds();
-			if (!bounds || event.x < 0 || event.y < 0 || event.x >= bounds.width || event.y >= bounds.height) return undefined;
+			const bounds = this.bounds;
+			const x = event.screenX - bounds.col, y = event.screenY - bounds.row;
+			if (!this.segments.some(segment => y === segment.row && x >= segment.col && x < segment.col + segment.width)) return undefined;
 			this.dragging = { screenX: event.screenX, screenY: event.screenY, col: bounds.col, row: bounds.row, moved: false };
 			return { handled: true, capture: true };
 		}
 		if (!this.dragging) return undefined;
 		if (event.type === "drag" || event.type === "release") {
-			const bounds = this.handle.getBounds();
+			const bounds = this.bounds;
 			if (event.screenX !== this.dragging.screenX || event.screenY !== this.dragging.screenY) {
 				this.dragging.moved = true;
 				this.lastClick = undefined;
 			}
-			if (bounds && this.dragging.moved && !this.folded) {
+			if (this.dragging.moved && !this.folded) {
 				const spanX = Math.max(0, this.tui.terminal.columns - bounds.width - (this.tui.terminal.columns > 1 ? 1 : 0));
 				const spanY = Math.max(0, this.tui.terminal.rows - bounds.height - this.bottomMargin);
 				this.position = {
@@ -98,7 +122,7 @@ export class ButlerWidget implements Component {
 		clearInterval(this.timer);
 		this.dragging = undefined;
 		// ui.custom's done() pops the top overlay, which may belong to a menu.
-		this.handle.hide();
+		for (const handle of this.handles) handle.hide();
 	}
 }
 

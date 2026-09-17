@@ -26,13 +26,13 @@ function pixel(top: string, bottom: string): string {
 	if (bottom === " ") return `\x1b[38;2;${COLORS[top]}m▀${RESET}`;
 	return `\x1b[38;2;${COLORS[top]}m\x1b[48;2;${COLORS[bottom]}m▀${RESET}`;
 }
-export function butlerFrame(state: ButlerState, frame: number, available: number, rows = 30): string[] {
+function butlerCells(state: ButlerState, frame: number, available: number, rows: number): string[][] {
 	if (available <= 0) return [];
 	const blink = state === "idle" && frame % 32 >= 30;
 	const cyan = `\x1b[38;2;${COLORS[state === "error" ? "r" : "c"]}m`;
 	if (available < 17 || rows < 24) {
 		const face = state === "error" ? "(! !)" : state === "done" ? "(^ ^)" : blink ? "(- -)" : "(o o)";
-		return [cyan + (available < 5 ? "◈" : face) + RESET];
+		return [[...(available < 5 ? "◈" : face)].map(char => char === " " ? " " : cyan + char + RESET)];
 	}
 	const body = SHELL.map(line => [...line]);
 	const phase = frame % 48;
@@ -55,7 +55,28 @@ export function butlerFrame(state: ButlerState, frame: number, available: number
 		const orbit = [[1, 3], [4, 1], [12, 1], [15, 4], [14, 8], [2, 8]][frame % 6];
 		canvas[orbit[1]][orbit[0]] = "e";
 	}
-	const lines: string[] = [];
-	for (let y = 0; y < 12; y += 2) lines.push(canvas[y].map((color, x) => pixel(color, canvas[y + 1][x])).join(""));
+	const lines: string[][] = [];
+	for (let y = 0; y < 12; y += 2) lines.push(canvas[y].map((color, x) => pixel(color, canvas[y + 1][x])));
 	return lines;
+}
+
+export function butlerFrame(state: ButlerState, frame: number, available: number, rows = 30): string[] {
+	return butlerCells(state, frame, available, rows).map(line => line.join(""));
+}
+
+export type ButlerSegment = { row: number; col: number; width: number; text: string };
+// Six body rows and at most one detached orbit pixel. Stable slots keep menus above the pet.
+export const BUTLER_MAX_SEGMENTS = 7;
+export function butlerSegments(state: ButlerState, frame: number, available: number, rows: number): ButlerSegment[] {
+	const segments: ButlerSegment[] = [];
+	for (const [row, cells] of butlerCells(state, frame, available, rows).entries()) {
+		let run: ButlerSegment | undefined;
+		for (const [col, cell] of cells.entries()) {
+			if (cell === " ") { run = undefined; continue; }
+			if (!run) { run = { row, col, width: 0, text: "" }; segments.push(run); }
+			run.width++;
+			run.text += cell;
+		}
+	}
+	return segments;
 }
