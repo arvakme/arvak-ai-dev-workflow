@@ -1,58 +1,28 @@
 ---
 name: ship
 disable-model-invocation: true
-description: 发布/提交流程：用户说 ship、发布、提交、推送、commit、更新版号、changelog、打 tag、开源准备时使用，凡是要把工作区改动变成提交/版本/Release 的时刻都算，即使用户只说了"提交一下"。按仓库自身风格做细粒度原子提交、更新版本与 changelog、盯 CI 到绿。不用于：写代码、修 bug、PR review。
+description: 按项目约定提交、推送或发布已完成的改动；用户要求 commit、push、发版或创建 Release 时使用。
 ---
+
 # Ship
 
-把工作区收干净并发布。**不做代码修改**（lint 自动修复除外）。
+先区分本次目标是提交、推送、PR 还是发版。沿用用户已给出的授权、仓库约定和当前交付物；普通提交与推送不默认升级版本、写 changelog 或打 tag。
 
-所有风格从仓库现学，零硬编码——同一个用户的不同仓库风格可能完全不同（有的 emoji 前缀，有的纯 conventional；有的 changelog 双语，有的只有英文）。写死必错，现学必对。
+## 提交与推送
 
-## Step 0 — 事实收集（并行执行）
+- 核对目标仓库、分支、本次差异、已有并行改动及受影响检查结果；提交风格从近期提交和仓库模板确认。
+- 检查本次差异中的意外凭据和无关内容。已有必要证据直接复用，代码或验证输入变化后才重跑相关检查。
+- 按可独立交付、回退的逻辑单元提交，行为与保护它的测试可以在同一提交。不清理他人的工作区。
+- `git commit -m <msg> -- <路径>` 只提交本任务路径；同文件混有他人改动时先隔离自己的差异。不要以工作区必须全干净为由裹带其他任务。
+- 已授权推送就继续推送并确认远端目标 commit；只要求提交时在提交完成后交付。项目要求 PR 时沿用其 Draft、审查和合入规则。
+- 对应 CI 已触发时等待并核对结果。没有 run、工作流 skipped、无权查看与检查通过分别报告，不把未知状态写成绿色。
 
-- `git status` + `git diff`：改动全貌，确认没有半成品
-- `git log --oneline -20`：学本仓库 commit 风格（是否 emoji 前缀、type/scope 惯例、test/docs 是否独立提交）
-- CHANGELOG 头部 30 行：学格式（是否双语、分节方式、Unreleased 段）
-- 版本文件位置（package.json / Cargo.toml / 多包 monorepo 逐个确认）
-- `.github/workflows/`：确认 CI 和 release 触发方式（tag push？）
+## 发版
 
-## Step 1 — 一句话确认
+只有本次包含发布授权时执行。版本、changelog、tag 和制品入口按仓库规则处理；用户只说 push 时不额外创建 Release。
 
-问用户：**是否更新版号（Y/N）**。用户调用时已说明的直接跳过。
+先完成实现与验证，再生成发布元数据；tag 指向包含全部交付内容的最终 commit。核对该版本对应的 CI、制品或 Deployment，项目规定跳过的检查明确说明。
 
-## Step 2 — 提交（Y/N 都做）
+若发布失败，按项目规定的恢复方式处理本次引入的问题；未经授权不在生产上试错。发现实现缺陷时，在已授权范围内修复并重新验证；超出范围或缺外部条件时说明阻塞，不声称发布完成。
 
-1. **脱敏扫描**：diff 里查密钥/token/内网地址/个人路径模式，命中即停，报告用户
-2. **细粒度原子拆分**：按逻辑单元分组暂存（`git add -p` / 按文件），每个 commit 单一意图、可独立 revert、可被 bisect 定位。禁止 `git add .` 一把梭。test/docs 是否独立提交，跟随 Step 0 学到的仓库惯例
-3. commit message 严格匹配仓库现有风格
-4. lint / typecheck（仓库有就跑），失败先修 lint 问题再提交
-5. push，确认工作区干净
-
-拆分示例——一次改动同时含新功能、附带修复和文档：
-
-```
-feat(session): persist selected conversation
-fix(session): drop stale draft on conversation switch
-test(session): cover persistence and stale draft
-docs(changelog): note session persistence
-```
-
-而不是一个 `feat: update session stuff` 装下全部。判断标准：revert 任意一个 commit，其余仍应独立成立。
-
-## Step 3 — 仅 Y：发布
-
-发布顺序是硬边界：先完成 Step 2 的全部用户改动提交，再修改版本与 CHANGELOG 并创建 release commit；tag 必须指向这个最终 release commit。禁止先提交 release 元数据、再把业务改动补在 tag 前后。
-
-1. 按 semver 判定新版号（用户没指定时自己判定，执行前一句话告知，不阻塞）
-2. 更新版本文件 + CHANGELOG：新条目从本次 commits 生成，用户向语言，不写实现细节；双语仓库两种语言都写；文风走 stop-slop
-3. `chore(release): prepare vX.Y.Z` 提交（匹配仓库风格）→ 打 tag → push tag
-4. **盯 CI 到绿**：`gh run watch`（外部系统无事件接口，等待即业务语义）。红了：分析日志，属本次发布的问题就修并重走流程；历史遗留问题报告用户
-5. 确认 release 产物生成，报告最终链接
-
-## 硬规则
-
-- 全程不改业务代码；发现代码问题只报告，不顺手修
-- 不合并无关改动进同一 commit
-- CI 没绿不算结束，不许中途宣布完成
-
+最终报告实际完成的交付阶段、commit／PR／制品链接、验证结果和未完成部分。

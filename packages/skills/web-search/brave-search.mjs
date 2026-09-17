@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 // Brave Web Search：零依赖 wrapper，紧凑输出（title / url / snippet / age）。
 // 用途：精确关键词、时效性、找准确 URL。语义/代码搜索用 exa。
+import { credential } from "./credential.mjs";
 
 const API = "https://api.search.brave.com/res/v1/web/search";
-const KEY = process.env.BRAVE_SEARCH_API_KEY;
 
 function usage(code = 0) {
 	console.log(`用法: brave-search "query" [options]
@@ -17,8 +17,9 @@ function usage(code = 0) {
 
 const args = process.argv.slice(2);
 if (args.length === 0 || args[0] === "-h" || args[0] === "--help") usage(args.length ? 0 : 1);
+const KEY = credential("BRAVE_SEARCH_API_KEY");
 if (!KEY) {
-	console.error("缺少 BRAVE_SEARCH_API_KEY 环境变量");
+	console.error('Brave 未配置：请运行 security add-generic-password -U -a "$USER" -s my-agent-workstation.brave -w <key>');
 	process.exit(1);
 }
 

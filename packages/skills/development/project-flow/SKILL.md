@@ -1,6 +1,6 @@
 ---
 name: project-flow
-description: 用 Agora 白板梳理项目目标、依赖、未决问题和验收条件，并在需要执行时通过 Seedmux 衔接真实 Agent。用户要理清项目流程、讨论白板上的计划或从计划转入派发时使用；单个代码修复无需经过白板。
+description: 用 Agora 梳理项目目标、依赖和决策，并衔接 Seedmux 执行；用户要整理项目流程或从白板计划转入派发时使用。
 ---
 
 # 项目流程：Agora → Seedmux → 验证
@@ -24,7 +24,9 @@ Agora 白板承载共享理解，Seedmux 管理真实 Agent pane，Pi 或各原�
 
 ## 从计划进入执行
 
-用户已授权执行时，将边界明确的工作交给 Seedmux；小任务由当前 Agent 直接完成。复用或新建 pane、任务文件、允许路径、验收方式和回执均按 `seedmux-team` 执行，所有子代理都只由 Seedmux 创建，禁止 FireCode 或其他私建 Worker 池；主控职责由当前 Seedmux pane 承担。
+用户已授权执行时，将边界明确的工作交给 Seedmux；小任务由当前 Agent 直接完成，无需白板或多 agent。复用或新建 pane、任务文件、允许路径、验收方式和回执均按 `seedmux-team` 执行，所有子代理都只由 Seedmux 创建；主控职责由当前 Seedmux pane 承担。
+
+并行写入、独立审查或集成前读取 [工作目录与交付证据](references/delivery.md)，确定各任务的隔离目录、输入版本与交付阶段。scope 不能代替工作目录隔离。
 
 给执行者带上项目路径、相关 Issue、白板 room/page 或 session ID、已定决策和验收条件。不要把整个白板、全部会话历史重复塞进每张工单。
 

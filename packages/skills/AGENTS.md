@@ -2,11 +2,10 @@
 
 - `creative/`：图像与视频生产、宣传物料、文案。
 - `development/`：本地开发、测试、审计和项目治理。
-- `matt/`：Matt Pocock 工程与生产力工作流的完整中文译本。
+- `matt/`：基于 Matt Pocock 方法整理的中文工程技能，遵循当前项目与用户的交付约定。
 - `frontend/`：前端设计与 UI polish。
 - `operations/`：运维连接、远程操作、Herdr 终端与桌面自动化；所有子代理（包括独立审查者）的编排由 Seedmux 的外部 `seedmux-team` skill 负责。
 - `web-search/`：Brave、Exa、Context7 的统一网络与文档搜索入口。
-- `search-skills/`：按需定位冷归档 Skill。
 
 独立审查使用 `development/seedmux-review`；派发复用应用的 `seedmux-team`，禁止另建进程内子会话或 Worker 池。
 
@@ -36,4 +35,6 @@
 | 换会话交接 | `handoff` |
 | 为仓库配置 tracker、标签与领域文档 | `setup-matt-pocock-skills` |
 
-Matt 工单流首次用于某个仓库前，先运行 `setup-matt-pocock-skills`。
+使用工单流时读取项目已有 tracker 约定；缺少且任务确实依赖时才使用 `setup-matt-pocock-skills`，不重复初始化。
+
+修改 skill 的触发或执行边界时，按风险选取 [工作流场景](../../tests/workflow-scenarios.json) 做独立行为检查。实际执行使用临时仓库与本地远端；结构校验、规则审阅和真实执行分别报告，未运行的场景不标通过。

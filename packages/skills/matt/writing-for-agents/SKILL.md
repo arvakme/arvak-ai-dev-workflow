@@ -1,9 +1,9 @@
 ---
 name: writing-for-agents
-description: 为 agent 编写合适它的文档，在任何文档修改中使用
+description: 编写或重构 AGENTS.md、skill 与 agent 操作说明时使用；普通用户文档和文字修订直接处理。
 ---
 
-为 agent 消费的任何文档提供参考——skill、`AGENTS.md` / `CLAUDE.md`，以及通过指针到达的文档。打包方式不同；写法相同：同一组杠杆让每次运行都采取相同的 _过程_，而不是产出相同的结果。
+为 skill、`AGENTS.md` / `CLAUDE.md` 和 agent 操作说明提供参考。优先表达目标、适用条件与真实边界，让 agent 按任务选择方法；仅在顺序影响正确性时规定固定步骤。
 
 当你编写的文档是一个 skill 时，阅读 [`SKILL-MECHANICS.md`](SKILL-MECHANICS.md)，了解 frontmatter、调用方式选择和路由 skill。
 

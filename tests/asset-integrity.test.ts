@@ -1,8 +1,10 @@
 import { afterAll, expect, test } from "bun:test";
 import { existsSync } from "node:fs";
-import { access, readFile, readdir } from "node:fs/promises";
+import { access, readFile, readdir, mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { basename, dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import manifest from "../package.json";
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const FIRECODE = join(REPO, "packages", "firecode");
@@ -74,7 +76,8 @@ const SECRET_PATTERNS = [
 	/\b(?:api[_-]?key|access[_-]?token|secret[_-]?key|password)\s*[:=]\s*(?:"[A-Za-z0-9+/=_-]{16,}"|'[A-Za-z0-9+/=_-]{16,}')/i,
 ];
 
-const assetRoots = [FIRECODE, PI_CONFIG, SKILLS];
+const assetRoots = [FIRECODE, PI_CONFIG, SKILLS,
+	...((manifest.pi as { prompts?: string[] }).prompts ?? []).map((path) => resolve(REPO, path))];
 let firecodeLoader: { cleanupFirecodeModules: () => Promise<void> } | undefined;
 
 afterAll(async () => {
@@ -131,6 +134,24 @@ async function loadFirecodeTestModule() {
 		throw error;
 	}
 }
+
+test("Pi discovers the consolidated search skill and no retired tldraw prompt", async () => {
+	const host = await loadFirecodeTestModule();
+	if (!host) return;
+	const { DefaultResourceLoader, SettingsManager } = await import(host.PI_CODING_AGENT_URL);
+	const agentDir = await mkdtemp(join(tmpdir(), "workflow-resources-"));
+	try {
+		const loader = new DefaultResourceLoader({ cwd: agentDir, agentDir,
+			settingsManager: SettingsManager.inMemory({ packages: [REPO] }),
+			noExtensions: true, noContextFiles: true });
+		await loader.reload();
+		const { skills, diagnostics } = loader.getSkills();
+		expect(diagnostics).toEqual([]);
+		expect(skills.filter((skill: any) => skill.name === "web-search")).toHaveLength(1);
+		expect(skills.some((skill: any) => skill.name === "search")).toBeFalse();
+		expect(loader.getPrompts().prompts.some((prompt: any) => prompt.name === "tldraw-offline")).toBeFalse();
+	} finally { await rm(agentDir, { recursive: true, force: true }); }
+});
 
 test("FireCode 通过现有 loader 接缝可加载", async () => {
 	const loader = await loadFirecodeTestModule();

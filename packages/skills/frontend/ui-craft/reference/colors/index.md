@@ -47,6 +47,8 @@ Use three decimal places for L and C and up to three for H. Drop trailing zeros 
 
 ### 3. Measure Contrast, Gamut, and Palette Behavior
 
+Use the project's required contrast metric and report which one was measured. APCA can supplement a WCAG ratio check; it is not an extra mandatory gate for every local color edit. Unknown background, font, opacity or rendering details remain explicit assumptions, not measured failures.
+
 | Rule | Value |
 | --- | --- |
 | Light/dark boundary | L > 0.73 = light background → dark text; below it, light text still scores higher |
@@ -89,7 +91,7 @@ Group all confirmed findings by principle. Use a markdown table with **Severity*
 
 - **Severity**: `HIGH` makes content unreadable or assigns a misleading semantic color; `MEDIUM` creates a noticeable theme, gamut, or consistency failure; `LOW` is isolated polish.
 - **Location**: cite `path/to/file:line`. If the artifact has no source files, cite the exact screen and component instead.
-- **Before / After**: show the current value or token and the exact replacement.
+- **Before / After**: show the current value or token and a supported replacement; when evidence is incomplete, label candidates as conditional suggestions instead of asserting an exact fix.
 - **Why**: name the violated principle and include measured contrast or gamut evidence when relevant.
 
 Consolidate a repeated systemic issue into one row and list every affected location. Omit principles with no findings.
@@ -105,6 +107,6 @@ Consolidate a repeated systemic issue into one row and list every affected locat
 After the findings:
 
 1. **Verification**: list the exact checks run and their observed results, including contrast measurements, gamut checks, and both light and dark appearances when applicable. If a check was not run, state what still needs verification.
-2. **Verdict**: `Block` if any `HIGH` finding remains, `Needs changes` if only `MEDIUM` or `LOW` findings remain, and `Approve` only when no actionable findings remain.
+2. **Verdict**: `Block` if a confirmed `HIGH` finding remains, `Needs changes` for confirmed `MEDIUM` or `LOW` findings, and `Approve` only when the requested review coverage is verified and no actionable findings remain. Use `Insufficient evidence` for missing rendering context; advice-only requests need no formal verdict.
 
-When there are no findings, omit the table, state "No actionable color findings", report verification, and end with `Approve`.
+When there are no confirmed findings, omit the table and report verification and its limits. Lack of evidence is not approval.

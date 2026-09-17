@@ -6,7 +6,7 @@ Contrast is always measured between a **foreground color** (text, icon, or UI el
 
 ## APCA thresholds (recommended)
 
-APCA (Accessible Perceptual Contrast Algorithm) is more perceptually accurate than WCAG 2 and pairs naturally with oklch since both are grounded in perceptual lightness. Use APCA as the default.
+Use the metric required by the project or requested review. APCA provides an additional perceptual check when relevant; it need not be added to every local edit that already has an appropriate ratio check. State which metric was measured and which rendering assumptions remain unverified; one metric does not establish conformance to another.
 
 Lc (Lightness Contrast) measures the perceived contrast between foreground and background. These levels are simplified from APCA's full font-size/weight lookup table:
 

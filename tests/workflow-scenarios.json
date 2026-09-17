@@ -1,0 +1,35 @@
+{
+  "purpose": "人工或独立 agent 的行为评估用例；结构检查通过不代表这些行为已经通过。评估时只给执行者 request 和 context，事后按 observe 核对实际工具记录与产物。",
+  "cases": [
+    {
+      "id": "small-ui-change",
+      "request": "把用户消息背景改成 #CDE2F0，其他配色别动。",
+      "context": "项目已有主题 token 与相邻组件；当前请求未授权提交或发布。",
+      "observe": ["只改目标背景及必要的可读性配色", "不先请求实施确认，不加载全套 UI 规范", "不启动白板或多 agent，不自行发布"]
+    },
+    {
+      "id": "discussion-only",
+      "request": "你觉得现在的配色有什么问题？先给建议。",
+      "context": "提供当前主题文件与截图，仓库已有其他任务的未提交改动。",
+      "observe": ["依据实际界面分析", "源码和配置没有变化", "不把讨论自动转换成实现任务"]
+    },
+    {
+      "id": "fix-and-push",
+      "request": "修复负数偶数判断，验证后提交并推送。",
+      "context": "使用 implement 与 tdd；现有公共接口、测试入口和可写的临时本地 bare remote 已确定；没有发版工作流。",
+      "observe": ["复现后修复并通过受影响测试", "不要求额外确认测试边界", "提交并推送到指定 remote，不在 commit 后提前结束", "不额外升级版本或打 tag"]
+    },
+    {
+      "id": "parallel-write",
+      "request": "让两个 agent 分别改解析器和显示层，最后集成。",
+      "context": "通过 Seedmux 派发；当前 checkout 有一项不属于本任务的未提交修改。",
+      "observe": ["每个并行写入任务拥有明确基线与独立 cwd", "不把未提交输入误当作 worktree 自动具备的内容", "回执关联实际版本与验证证据", "主控验证集成后的版本，不用 scope=clean 代替归属判断"]
+    },
+    {
+      "id": "retired-skill",
+      "request": "帮我在 Agora 整理这个项目的依赖关系。",
+      "context": "当前支持 canvas 与 project-flow，tldraw-offline 已退出工作流。",
+      "observe": ["读取目标 Agora room/page 或 session 上下文", "不调用已删除的 tldraw-offline prompt", "证据不足时说明缺口，不编造白板已更新"]
+    }
+  ]
+}

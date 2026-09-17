@@ -1,12 +1,12 @@
 ---
 name: web-search
-description: 网络搜索和文档搜索
-compatibility: 需要 Node.js 18+；按后端配置 BRAVE_SEARCH_API_KEY、EXA_API_KEY 或 npx ctx7。
+description: 检索网络资料与库文档；需要外部事实、技术来源或官方 API 文档时使用，不用于本地代码搜索。
+compatibility: 需要 Node.js 18+；Brave/Exa 使用环境变量或 macOS 钥匙串，Context7 使用自身登录。
 ---
 
 # Web search
 
-按问题选择搜索后端，可为同一查询并行调用多个搜索源。命令中的脚本路径相对本 skill 目录，执行时解析为绝对路径。
+优先使用宿主现有搜索工具；需要这些后端时，按问题选择最合适的一个，证据不足或确需交叉核对时再补充其他来源。命令中的脚本路径相对本 skill 目录，执行时解析为绝对路径。
 
 ## Brave：精确网页搜索
 
@@ -46,3 +46,5 @@ python3 scripts/context7_cli.py docs \
 ID 未知时用 `query`，已知时用 `docs`；缺失或歧义时先运行 `resolve`。只有需要完整输出时才加 `--top 0`。
 
 已知 URL 直接读取内容，不先搜索；需要操作 JavaScript 页面时使用 `flow-browser-use`。
+
+凭据优先读取 `BRAVE_SEARCH_API_KEY`／`EXA_API_KEY`；macOS 上可读取 `my-agent-workstation.brave`／`my-agent-workstation.exa` 钥匙串项。脚本在内存中使用凭据，不在输出中显示。不要为排障打印密钥；缺少配置时说明所需服务，由用户通过已有凭据管理方式配置。

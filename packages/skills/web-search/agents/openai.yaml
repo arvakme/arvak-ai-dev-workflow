@@ -1,4 +1,4 @@
 interface:
-  display_name: "Context7"
-  short_description: "拉取最新库文档"
-  default_prompt: "Use $context7 to fetch current library docs."
+  display_name: "网络与文档搜索"
+  short_description: "检索网络事实、技术来源和官方库文档，按问题选择搜索后端"
+  default_prompt: "Use $web-search to find primary sources for this question."
