@@ -1,4 +1,4 @@
-/** Compact NONO companion wordmark; leaves the top-right corner to the pet. */
+/** Butler Code wordmark; leaves the top-right corner to the pet. */
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { clip } from "./format.js";
 
@@ -9,7 +9,7 @@ export function registerHeader(pi: ExtensionAPI): void {
 			invalidate() {},
 			render(width: number): string[] {
 				const available = Math.max(0, width - (width >= 40 ? 20 : 0));
-				const title = `${theme.fg("accent", "◈")}  ${theme.bold(theme.fg("text", "Nono Copilot"))}`;
+				const title = `${theme.fg("accent", "◈")}  ${theme.bold(theme.fg("text", "Butler Code"))}`;
 				const subtitle = theme.fg("muted", "think · build · explore");
 				return [clip(title, available, "end", ""), clip(subtitle, available, "end", ""), ""];
 			},
