@@ -4,8 +4,8 @@ export type ButlerState = "idle" | "working" | "done" | "error";
 const RESET = "\x1b[0m";
 const COLORS: Record<string, string> = {
 	h: "245;253;255", w: "218;234;244", s: "120;161;191", d: "66;101;133",
-	n: "20;43;67", v: "35;71;98", c: "65;217;242", b: "40;126;191",
-	e: "114;245;255", r: "255;162;92", t: "35;100;133",
+	n: "20;43;67", v: "35;71;98", c: "205;226;240", b: "115;151;178",
+	e: "184;214;234", r: "255;162;92", t: "35;100;133",
 };
 // Light comes from the upper left; the visor, lower shell and thruster have separate depth bands.
 const SHELL = [
