@@ -5,6 +5,8 @@ type JsonRecord = Record<string, unknown>;
 export type QuotaWindow = {
 	label: string;
 	remaining: number;
+	/** Milliseconds since epoch; absent when the provider does not report a reset. */
+	resetsAt?: number;
 };
 
 export type QuotaStatus =
@@ -33,9 +35,11 @@ function windowFromUsage(
 	label: string,
 	value: unknown,
 	usedKey: string,
+	resetKey = "resets_at",
 ): QuotaWindow | undefined {
 	const used = finiteNumber(record(value)?.[usedKey]);
-	return used === undefined ? undefined : { label, remaining: remainingPercent(used) };
+	const resetsAt = epochMillis(record(value)?.[resetKey]);
+	return used === undefined ? undefined : { label, remaining: remainingPercent(used), ...(resetsAt !== undefined ? { resetsAt } : {}) };
 }
 
 const defined = (window: QuotaWindow | undefined): window is QuotaWindow =>
@@ -53,16 +57,30 @@ export function parseOpenAIQuota(value: unknown): QuotaWindow[] {
 		return fallback;
 	};
 	return [
-		windowFromUsage(label(primary, "5h"), primary, "used_percent"),
-		windowFromUsage(label(secondary, "7d"), secondary, "used_percent"),
+		windowFromUsage(label(primary, "5h"), primary, "used_percent", "reset_at"),
+		windowFromUsage(label(secondary, "7d"), secondary, "used_percent", "reset_at"),
 	].filter(defined);
 }
 
+/** Both legacy buckets and the newer scoped limits shape used by Claude Code. */
 export function parseAnthropicQuota(value: unknown): QuotaWindow[] {
 	const source = record(value);
+	const limits = Array.isArray(source?.limits) ? source.limits.map(record).filter((v): v is JsonRecord => !!v) : [];
+	const fromLimit = (label: string, limit: JsonRecord | undefined) => {
+		if (!limit || ((limit.percent ?? 0) === 0 && limit.resets_at == null)) return undefined;
+		return windowFromUsage(label, limit, "percent");
+	};
+	const weeklyModels = ["Sonnet", "Opus", "Fable"].map(label => {
+		const limit = limits.find(item => {
+			const name = record(record(item.scope)?.model)?.display_name;
+			return item.kind === "weekly_scoped" && typeof name === "string" && name.toLowerCase().includes(label.toLowerCase());
+		});
+		return fromLimit(label, limit) ?? windowFromUsage(label, source?.[`seven_day_${label.toLowerCase()}`], "utilization");
+	});
 	return [
-		windowFromUsage("5h", source?.five_hour, "utilization"),
-		windowFromUsage("7d", source?.seven_day, "utilization"),
+		windowFromUsage("5h", source?.five_hour, "utilization") ?? fromLimit("5h", limits.find(item => item.kind === "session")),
+		windowFromUsage("7d", source?.seven_day, "utilization") ?? fromLimit("7d", limits.find(item => item.kind === "weekly_all")),
+		...weeklyModels,
 	].filter(defined);
 }
 

@@ -7,7 +7,7 @@ Pi 定制层：终端界面、预设、请求配置和 NONO 终端挂件。所�
 `index.ts` 按 `config.features` 注册独立功能。状态只归所属模块；`session/pet.ts` 通过不抢焦点的 overlay 渲染 NONO（零高度 widget 仅负责释放资源），`session/nono-frames.ts` 提供像素帧。只读取本会话生命周期，位置按 Pi custom entry 保存；不创建状态目录或桌面进程。
 
 - `session/`：预设、命名、统计、显示投影和 NONO，见 [session/AGENTS.md](session/AGENTS.md)。
-- `statusbar/`：身份、模型、额度与用量，见 [statusbar/AGENTS.md](statusbar/AGENTS.md)。
+- `statusbar/`：Claude 风格的三行模型、上下文、已用额度、速度与会话 ID，见 [statusbar/AGENTS.md](statusbar/AGENTS.md)。
 - `tools/`：默认工具渲染。不要包装 grep/find/ls，Pi 注册即激活，会改变用户工具集。
 - `provider/`：Anthropic OAuth 归因及 OpenAI/xAI 请求配置。
 

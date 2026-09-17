@@ -1,31 +1,31 @@
-/** 小号终端像素 NONO：双像素半块字符，透明留白，不依赖图片或桌面进程。 */
+/** Small shaded NONO sprite: twelve subpixel rows inside the original six-line terminal footprint. */
 export type NonoState = "idle" | "working" | "done" | "error";
 
 const RESET = "\x1b[0m";
 const COLORS: Record<string, string> = {
-	w: "218;234;244", s: "120;161;191", n: "20;43;67",
-	c: "65;217;242", b: "40;126;191", e: "114;245;255", r: "255;162;92",
+	h: "245;253;255", w: "218;234;244", s: "120;161;191", d: "66;101;133",
+	n: "20;43;67", v: "35;71;98", c: "65;217;242", b: "40;126;191",
+	e: "114;245;255", r: "255;162;92", t: "35;100;133",
 };
-const PIXELS = [
-	" c      c      c ",
-	" bc    cwc    cb ",
-	"  bc wwwwwww cb  ",
-	"   wwwnnnnnwww   ",
-	"  wwnneenneennww ",
-	"  wwnneenneennww ",
-	"   wwnnncnnnww   ",
-	"  cbwwwwwwwwwbc  ",
-	"    swwwwws     ",
-	"       bcb      ",
-].map((line) => line.padEnd(17));
-
+// Light comes from the upper left; the visor, lower shell and thruster have separate depth bands.
+const SHELL = [
+	"       chc       ",
+	"      cwhwc      ",
+	"     shhhwws     ",
+	"   bwhhhwwwwsb   ",
+	"  cwhvvvvvvvwwc  ",
+	" cwwvnnnnnnnvwsc ",
+	"  swvnnnnnnnvws  ",
+	"   swwvnnnvwws   ",
+	"  bcswwwwwsscb   ",
+	"      dbcbd      ",
+];
 function pixel(top: string, bottom: string): string {
 	if (top === " " && bottom === " ") return " ";
 	if (top === " ") return `\x1b[38;2;${COLORS[bottom]}m▄${RESET}`;
 	if (bottom === " ") return `\x1b[38;2;${COLORS[top]}m▀${RESET}`;
 	return `\x1b[38;2;${COLORS[top]}m\x1b[48;2;${COLORS[bottom]}m▀${RESET}`;
 }
-
 export function nonoFrame(state: NonoState, frame: number, available: number, rows = 30): string[] {
 	if (available <= 0) return [];
 	const blink = state === "idle" && frame % 32 >= 30;
@@ -34,21 +34,28 @@ export function nonoFrame(state: NonoState, frame: number, available: number, ro
 		const face = state === "error" ? "(! !)" : state === "done" ? "(^ ^)" : blink ? "(- -)" : "(o o)";
 		return [cyan + (available < 5 ? "◈" : face) + RESET];
 	}
-	const pixels = PIXELS.map((line) => [...line]);
-	if (blink) for (const row of [4, 5]) {
-		for (let x = 0; x < 17; x++) if (pixels[row][x] === "e") pixels[row][x] = row === 4 ? "n" : "c";
+	const body = SHELL.map(line => [...line]);
+	const phase = frame % 48;
+	const gaze = state === "idle" ? phase >= 12 && phase < 20 ? -1 : phase >= 36 && phase < 42 ? 1 : 0 : 0;
+	for (const eye of [5 + gaze, 10 + gaze]) {
+		body[5][eye] = blink ? "n" : state === "error" ? "r" : "h";
+		body[5][eye + 1] = blink ? "n" : state === "error" ? "r" : "e";
+		body[6][eye] = state === "done" ? "n" : state === "error" ? "r" : "c";
+		body[6][eye + 1] = state === "done" ? "n" : state === "error" ? "r" : "e";
 	}
-	if (state === "error") for (const line of pixels) {
-		for (let x = 0; x < 17; x++) if (line[x] === "e") line[x] = "r";
-	}
+	body[7][8] = state === "done" ? "e" : "b";
+	// A slow glint on the curved shell and a soft thruster pulse add depth without flashing.
+	body[3][5 + Math.floor((frame % 40) / 10)] = "h";
+	body[9][8] = Math.floor(frame / 4) % 2 ? "e" : "c";
+	const hover = Math.floor(frame / (state === "done" ? 3 : 8)) % 2;
+	const canvas = Array.from({ length: 12 }, () => Array<string>(17).fill(" "));
+	for (let y = 0; y < body.length; y++) canvas[y + hover] = body[y];
+	canvas[10 + hover][8] = state === "working" ? "c" : "t";
 	if (state === "working") {
-		const orbit = [[0, 4], [1, 8], [8, 9], [15, 8], [16, 4], [15, 1]][frame % 6];
-		pixels[orbit[1]][orbit[0]] = "e";
+		const orbit = [[1, 3], [4, 1], [12, 1], [15, 4], [14, 8], [2, 8]][frame % 6];
+		canvas[orbit[1]][orbit[0]] = "e";
 	}
-	if (state === "done") pixels[0][8] = "e";
 	const lines: string[] = [];
-	for (let y = 0; y < 10; y += 2)
-		lines.push(pixels[y].map((color, x) => pixel(color, pixels[y + 1][x])).join(""));
-	// 固定六行，浮动时也不推动输入框或消息流。
-	return Math.floor(frame / (state === "done" ? 2 : 8)) % 2 ? ["", ...lines] : [...lines, ""];
+	for (let y = 0; y < 12; y += 2) lines.push(canvas[y].map((color, x) => pixel(color, canvas[y + 1][x])).join(""));
+	return lines;
 }

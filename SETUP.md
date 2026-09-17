@@ -13,10 +13,11 @@
 
 ```bash
 pi install ~/Devs/workstation
-pi install npm:pi-antigravity
 ```
 
-`pi list` 里应能看到本仓库目录和 `pi-antigravity`。
+`pi list` 里应能看到本仓库目录。
+
+Pi 内不安装 Antigravity / Cursor 的代理扩展；这些 CLI 由 Seedmux 调度。模型目录使用 Pi 的 `pi update --models` 刷新，个人模型覆盖与凭据留在本机。
 
 FireCode 运行配置：`~/.pi/agent/extensions/firecode/config.jsonc`，模板是 `packages/firecode/config.example.jsonc`。通知走本机 Moshi（Pi / Cursor / Grok 都已 hook），仓库不含 Bark。
 

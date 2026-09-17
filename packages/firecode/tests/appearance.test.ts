@@ -49,8 +49,8 @@ test("the compact header stays within its width and reserves NONO's corner", asy
 		expect(lines).toHaveLength(3);
 		expect(lines.every((line: string) => visibleWidth(line) <= width - (width >= 40 ? 20 : 0))).toBeTrue();
 	}
-	expect(header.render(80).join("\n")).toContain("FIRECODE");
-	expect(header.render(80).join("\n")).toContain("NONO");
+	expect(header.render(80).join("\n")).not.toContain("FIRECODE");
+	expect(header.render(80).join("\n")).toContain("Nono Copilot");
 });
 
 test("Pi discovers NONO through the package manifest and resolves every color", async () => {

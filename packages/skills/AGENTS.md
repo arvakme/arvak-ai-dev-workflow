@@ -10,7 +10,7 @@
 
 独立审查使用 `development/seedmux-review`；派发复用应用的 `seedmux-team`，禁止另建进程内子会话或 Worker 池。
 
-项目流程整理使用 `development/project-flow`：Agora 白板承载目标、依赖与决策，Seedmux 调度真实 Agent pane，项目 tracker 保持任务状态权威。`seedmux-team` 与 `canvas` 由对应应用提供，Pi 从全局 skills 发现，不在此维护副本。明确操作 tldraw Desktop 时才走 `tldraw-offline`。
+项目流程整理使用 `development/project-flow`：Agora 白板承载目标、依赖与决策，Seedmux 调度真实 Agent pane，项目 tracker 保持任务状态权威。`seedmux-team` 与 `canvas` 由对应应用提供，Pi 从全局 skills 发现，不在此维护副本。
 
 ## 手动 Skill
 
@@ -33,7 +33,6 @@
 | 按规格或工单实现 | `implement` |
 | 深模块与架构加深审计 | `improve-codebase-architecture` |
 | 架构 wiki（默认 2D，可加 3D） | `architecture-wiki` |
-| tldraw 流程图（`/tldraw-offline`） | `tldraw-offline` |
 | 换会话交接 | `handoff` |
 | 为仓库配置 tracker、标签与领域文档 | `setup-matt-pocock-skills` |
 

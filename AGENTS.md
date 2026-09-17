@@ -8,7 +8,7 @@ Pi 包入口是仓库根 `package.json`：`pi.extensions` → FireCode，`pi.ski
 - architecture-wiki 事实源是 `https://github.com/arvakme/architecture-wiki`（默认 2D，3D 可选），不要从 Suge8 覆盖
 - Agent 调度用 Seedmux 自带 `seedmux-team` skill 和 `~/.seedmux/bin/smx-team`；不在本仓库复制官方 skill。所有子代理和审查者必须由 Seedmux 创建；禁止 FireCode 自建子会话、Worker 池或另一个主控。Master 职责属于 Seedmux 中的当前主控 pane。
 - 项目目标、依赖、决策和验收关系用 Agora 白板，先读 `project-flow`，画布操作用 Agora 提供的 `canvas` skill。任务状态仍以项目指定 tracker 为准。
-- 明确操作 tldraw Desktop 或 `.tldraw` 文件时用 `/tldraw-offline`；architecture-wiki 用于代码架构可视化。
+- architecture-wiki 用于代码架构可视化。
 - 不要往这个仓库塞 Kitty / SketchyBar / zsh，那些在 `~/.config`
 - 不要把 `packages/pi-config/SYSTEM.md` 覆盖到 `~/.pi/agent/SYSTEM.md`
 - 不要 `git merge upstream/main` 整包合回来
