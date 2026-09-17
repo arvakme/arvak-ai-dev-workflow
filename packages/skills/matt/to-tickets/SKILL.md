@@ -26,6 +26,8 @@ disable-model-invocation: true
 
 将工作拆分为 **tracer bullet** 工单。
 
+每个切片继承 spec 对应的验收编号、可观察结果、验证证据和审查门槛，遵循 [验收合同](../../development/seedmux-review/references/verification-contract.md)。跨切片的用户路径在集成工单明确验收责任；不能把各局部测试通过当作整条路径已走通。
+
 <vertical-slice-rules>
 
 - 每个切片都要贯穿每一层，形成一条窄而 COMPLETE 的路径（schema、API、UI、tests）——是垂直切片，NOT 某一层的水平切片
