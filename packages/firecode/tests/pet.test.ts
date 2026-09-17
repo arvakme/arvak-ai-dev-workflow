@@ -156,3 +156,56 @@ test("Butler restores legacy positions and newer Butler entries take precedence"
     expect(pet.overlays[0].options.col).toBe("50%");
     expect(pet.overlays[0].options.row).toBe("50%");
 });
+
+const clickPet = (widget: ButlerWidget, x = 65, y = 2, localX = 3, localY = 2) => {
+	widget.handleMouse(mouse("press", x, y, localX, localY));
+	widget.handleMouse(mouse("release", x, y, localX, localY));
+};
+
+test("double-click docks Butler; one click restores its position and working feedback", async () => {
+	const pet = setup(); pet.emit("session_start");
+	await pet.commands.get("butler").handler("center", pet.ctx);
+	pet.emit("agent_start");
+	const widget = pet.widget!, options = pet.overlays[0].options;
+	clickPet(widget); expect(options.width).toBe(17);
+	clickPet(widget);
+	expect(options.width).toBe(1); expect(options.col).toBe("100%"); expect(options.row).toBe("0%");
+	expect(plain(widget.render(options.width).join(""))).toBe("◈");
+	expect(pet.workingVisible).toBeTrue(); expect(pet.positions).toHaveLength(1);
+	const renders = pet.tui.renders;
+	await new Promise(resolve => setTimeout(resolve, 220));
+	expect(pet.tui.renders).toBe(renders);
+	pet.emit("agent_end", { messages: [{ role: "assistant", stopReason: "error" }] });
+	expect(options.width).toBe(1);
+	pet.emit("agent_start"); expect(pet.workingVisible).toBeTrue();
+	clickPet(widget, 78, 0, 0, 0);
+	expect(options.width).toBe(17); expect(options.col).toBe("50%"); expect(options.row).toBe("50%");
+	expect(pet.workingVisible).toBeFalse(); expect(pet.tui.focus).toBe("editor");
+	clickPet(widget); expect(options.width).toBe(17);
+});
+
+test("dragging and separate clicks do not accidentally dock Butler", async () => {
+	const pet = setup(); pet.emit("session_start");
+	const widget = pet.widget!, options = pet.overlays[0].options;
+	clickPet(widget);
+	widget.handleMouse(mouse("press", 65, 2));
+	widget.handleMouse(mouse("drag", 64, 2));
+	widget.handleMouse(mouse("release", 65, 2));
+	clickPet(widget); expect(options.width).toBe(17);
+	await new Promise(resolve => setTimeout(resolve, 400));
+	clickPet(widget); expect(options.width).toBe(17);
+	clickPet(widget, 70, 3); expect(options.width).toBe(17);
+});
+
+test("docked Butler survives session mounting; show expands and hide removes its handle", async () => {
+	const pet = setup(); pet.emit("session_start");
+	clickPet(pet.widget!); clickPet(pet.widget!);
+	pet.emit("session_start"); expect(pet.overlays[0].options.width).toBe(1);
+	await pet.commands.get("butler").handler("show", pet.ctx);
+	expect(pet.overlays[0].options.width).toBe(17);
+	clickPet(pet.widget!); clickPet(pet.widget!);
+	await pet.commands.get("butler").handler("hide", pet.ctx);
+	expect(pet.overlays).toHaveLength(0);
+	await pet.commands.get("butler").handler("show", pet.ctx);
+	expect(pet.overlays[0].options.width).toBe(17);
+});

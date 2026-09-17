@@ -70,3 +70,33 @@ test("Pi discovers Butler through the package manifest and resolves every color"
 		}
 	} finally { await rm(agentDir, { recursive: true, force: true }); }
 });
+
+test("the real host releases capture after docking and restores Butler from its one-cell handle", () => {
+	const terminal = { columns: 80, rows: 30, hideCursor() {} };
+	const tui = new TuiAltScreen(terminal, false);
+	tui.requestRender = () => {};
+	const editor = { render: () => ["input"], invalidate() {} };
+	tui.setFocus(editor);
+	const saved: any[] = [], folded: boolean[] = [];
+	const pet = new ButlerWidget(tui, { x: 0.5, y: 0.5 }, p => saved.push(p), value => folded.push(value));
+	const draw = () => tui.compositeOverlays([], 80, 30);
+	const click = (x: number, y: number) => {
+		tui.handleMouseEvent({ button: 0, x, y, release: false });
+		tui.handleMouseEvent({ button: 0, x, y, release: true });
+		draw();
+	};
+	try {
+		draw(); click(35, 12); click(35, 12);
+		expect(folded).toEqual([true]);
+		click(35, 12); expect(folded).toEqual([true]);
+		click(78, 0); expect(folded).toEqual([true, false]);
+		expect(pet.render(17)).toHaveLength(6);
+		expect(saved).toEqual([]); expect(tui.focusedComponent).toBe(editor);
+		click(35, 12); click(35, 12); expect(folded).toEqual([true, false, true]);
+		const menu = { render: () => ["settings"], invalidate() {} };
+		const handle = tui.showOverlay(menu, { width: 20 });
+		pet.dispose(); draw();
+		expect(handle.getBounds()).toBeDefined(); expect(tui.focusedComponent).toBe(menu);
+		handle.hide();
+	} finally { pet.dispose(); }
+});

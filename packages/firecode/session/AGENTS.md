@@ -15,7 +15,7 @@
 
 预设名写入会话记录，重开会话只恢复名字与附加指令，不重放模型和工具切换。
 
-pet：只处理 TUI 会话生命周期；浮层不占消息流或输入框空间，零高度 widget 绑定宿主 dispose。只通过自己的 overlay handle 关闭，避免误关上层菜单。计时器随 dispose 清理，工作时取代 Working 行。二维相对位置保存于本会话 custom entry，缩放后仍在视口内；底部留三行给输入区，不传递对话内容。鼠标由全屏宿主派发，不自行切换终端鼠标模式；普通终端模式用 `/butler top-right|top-left|center` 定位。
+pet：只处理 TUI 会话生命周期；浮层不占消息流或输入框空间，零高度 widget 绑定宿主 dispose。只通过自己的 overlay handle 关闭，避免误关上层菜单。计时器随 dispose 清理，工作时取代 Working 行。二维相对位置保存于本会话 custom entry，缩放后仍在视口内；底部留三行给输入区，不传递对话内容。双击收成右上角单格 ◈，单击恢复原位置；收起时暂停动画并恢复宿主 Working 提示。点击与拖动按完整按下/释放手势区分，拖动不参与双击计数。鼠标由全屏宿主派发，不自行切换终端鼠标模式；普通终端模式用 `/butler top-right|top-left|center` 定位。
 
 ## herdr-display
 

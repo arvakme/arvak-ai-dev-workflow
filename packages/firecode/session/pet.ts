@@ -12,8 +12,9 @@ const percent = (value: number): `${number}%` => `${Number((value * 100).toFixed
 export class ButlerWidget implements Component {
 	private frame = 0;
 	private state: ButlerState = "idle";
-	private dragging: { screenX: number; screenY: number; col: number; row: number } | undefined;
-	private readonly timer: ReturnType<typeof setInterval>;
+	private dragging: { screenX: number; screenY: number; col: number; row: number; moved: boolean } | undefined;
+	private timer: ReturnType<typeof setInterval> | undefined;
+	private lastClick: { time: number; x: number; y: number } | undefined;
 	private readonly handle: OverlayHandle;
 	private disposed = false;
 
@@ -21,34 +22,57 @@ export class ButlerWidget implements Component {
 		private readonly tui: TUI,
 		private position: Position,
 		private readonly save: (position: Position) => void,
+		private readonly onFold: (folded: boolean) => void = () => {},
+		private folded = false,
 	) {
 		const self = this;
 		const options: OverlayOptions = {
 			nonCapturing: true,
-			get width() { return tui.terminal.columns >= 18 && tui.terminal.rows >= 24 ? 17 : tui.terminal.columns >= 6 ? 5 : 1; },
-			get row() { return percent(self.position.y); },
-			get col() { return percent(self.position.x); },
+			get width() { return self.folded ? 1 : tui.terminal.columns >= 18 && tui.terminal.rows >= 24 ? 17 : tui.terminal.columns >= 6 ? 5 : 1; },
+			get row() { return self.folded ? "0%" : percent(self.position.y); },
+			get col() { return self.folded ? "100%" : percent(self.position.x); },
 			get margin() { return { right: tui.terminal.columns > 1 ? 1 : 0, bottom: self.bottomMargin }; },
 		};
 		this.handle = tui.showOverlay(this, options);
-		this.timer = setInterval(() => { this.frame++; tui.requestRender(); }, 180);
-		this.timer.unref?.();
+		this.syncAnimation();
+	}
+	private syncAnimation(): void {
+		clearInterval(this.timer);
+		this.timer = undefined;
+		if (!this.folded && !this.disposed) {
+			this.timer = setInterval(() => { this.frame++; this.tui.requestRender(); }, 180);
+			this.timer.unref?.();
+		}
+	}
+	private click(event: TuiMouseEvent): void {
+		const now = performance.now();
+		if (this.folded || (this.lastClick && now - this.lastClick.time <= 350
+			&& event.screenX === this.lastClick.x && event.screenY === this.lastClick.y)) {
+			this.folded = !this.folded;
+			this.lastClick = undefined;
+			this.syncAnimation();
+			this.onFold(this.folded);
+		} else this.lastClick = { time: now, x: event.screenX, y: event.screenY };
 	}
 	private get bottomMargin(): number { return Math.min(3, Math.max(0, this.tui.terminal.rows - 1)); }
 	update(state: ButlerState): void { this.state = state; this.frame = 0; this.tui.requestRender(); }
-	render(width: number): string[] { return butlerFrame(this.state, this.frame, width, this.tui.terminal.rows); }
+	render(width: number): string[] { return butlerFrame(this.state, this.frame, this.folded ? Math.min(1, width) : width, this.tui.terminal.rows); }
 	handleMouse(event: TuiMouseEvent): TuiMouseEventResult | undefined {
 		if (this.disposed) return undefined;
 		if (event.type === "press" && event.button === "left") {
 			const bounds = this.handle.getBounds();
 			if (!bounds || event.x < 0 || event.y < 0 || event.x >= bounds.width || event.y >= bounds.height) return undefined;
-			this.dragging = { screenX: event.screenX, screenY: event.screenY, col: bounds.col, row: bounds.row };
+			this.dragging = { screenX: event.screenX, screenY: event.screenY, col: bounds.col, row: bounds.row, moved: false };
 			return { handled: true, capture: true };
 		}
 		if (!this.dragging) return undefined;
 		if (event.type === "drag" || event.type === "release") {
 			const bounds = this.handle.getBounds();
-			if (bounds) {
+			if (event.screenX !== this.dragging.screenX || event.screenY !== this.dragging.screenY) {
+				this.dragging.moved = true;
+				this.lastClick = undefined;
+			}
+			if (bounds && this.dragging.moved && !this.folded) {
 				const spanX = Math.max(0, this.tui.terminal.columns - bounds.width - (this.tui.terminal.columns > 1 ? 1 : 0));
 				const spanY = Math.max(0, this.tui.terminal.rows - bounds.height - this.bottomMargin);
 				this.position = {
@@ -56,7 +80,12 @@ export class ButlerWidget implements Component {
 					y: spanY ? clamp((this.dragging.row + event.screenY - this.dragging.screenY) / spanY) : this.position.y,
 				};
 			}
-			if (event.type === "release") { this.dragging = undefined; this.save({ ...this.position }); }
+			if (event.type === "release") {
+				if (this.dragging.moved) {
+					if (!this.folded) this.save({ ...this.position });
+				} else this.click(event);
+				this.dragging = undefined;
+			}
 			this.tui.requestRender();
 			return { handled: true };
 		}
@@ -78,6 +107,7 @@ export function registerPet(pi: ExtensionAPI): void {
 	let ui: ExtensionContext["ui"] | undefined;
 	let position: Position = { x: 1, y: 0 };
 	let hidden = false;
+	let folded = false;
 	let state: ButlerState = "idle";
 	let settle: ReturnType<typeof setTimeout> | undefined;
 	const save = (next: Position) => { position = next; pi.appendEntry(POSITION, next); };
@@ -85,10 +115,13 @@ export function registerPet(pi: ExtensionAPI): void {
 		if (!ui) return;
 		ui.setWidget(WIDGET, undefined);
 		widget = undefined;
-		ui.setWorkingVisible(hidden || state !== "working");
+		ui.setWorkingVisible(hidden || folded || state !== "working");
 		if (hidden) return;
 		ui.setWidget(WIDGET, (tui) => {
-			const pet = new ButlerWidget(tui, position, save);
+			const pet = new ButlerWidget(tui, position, save, (next) => {
+				folded = next;
+				ui?.setWorkingVisible(hidden || folded || state !== "working");
+			}, folded);
 			widget = pet;
 			pet.update(state);
 			// Lifecycle anchor only: no extra content or space in the editor layout.
@@ -101,7 +134,7 @@ export function registerPet(pi: ExtensionAPI): void {
 		ui = ctx.ui;
 		state = next;
 		widget?.update(state);
-		ui.setWorkingVisible(hidden || state !== "working");
+		ui.setWorkingVisible(hidden || folded || state !== "working");
 	};
 	pi.on("session_start", (_event, ctx) => {
 		if (ctx.mode !== "tui") return;
@@ -136,7 +169,7 @@ export function registerPet(pi: ExtensionAPI): void {
 		ui = undefined;
 	});
 	pi.registerCommand("butler", {
-		description: "Butler：show / hide / top-right / top-left / center（全屏模式可鼠标拖动）",
+		description: "Butler：show / hide / top-right / top-left / center（全屏可拖动，双击收起、点 ◈ 展开）",
 		handler: async (args, ctx) => {
 			if (ctx.mode !== "tui") return;
 			const command = args.trim() || "show";
@@ -147,6 +180,7 @@ export function registerPet(pi: ExtensionAPI): void {
 			}
 			ui = ctx.ui;
 			hidden = command === "hide";
+			folded = false;
 			if (Object.hasOwn(spots, command)) save(spots[command]);
 			mount();
 		},
