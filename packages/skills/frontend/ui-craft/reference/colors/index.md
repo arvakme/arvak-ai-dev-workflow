@@ -67,7 +67,7 @@ Use the project's required contrast metric and report which one was measured. AP
 | Raw color bypasses the project's semantic token system | Reuse or add the correct role token in the project's existing notation |
 | Isolated OKLCH value introduced into a hex/RGB codebase | Preserve the established notation unless the task includes a color-system migration |
 | HSL palette ramp with hue drift | Rebuild with constant oklch hue |
-| Failing contrast (check foreground vs its background using APCA) | Report the pair, its measured Lc and the threshold it misses; change colors only when asked (then adjust L, keep C and H) |
+| Failing contrast under the project's chosen metric | Report the pair, its measured Lc or ratio and the applicable threshold; change colors only when asked (then adjust L, keep C and H when appropriate) |
 | High chroma without gamut check | Clamp to max chroma for the L/H in sRGB |
 | Same absolute C across different hues | Use same C% (percentage of max) for consistent vividness |
 | P3 color without sRGB fallback | Add `@media (color-gamut: p3)` pattern |
