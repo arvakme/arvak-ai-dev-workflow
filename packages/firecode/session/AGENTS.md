@@ -8,14 +8,14 @@
 | `rename.ts` | `/rename` 与 `keys.rename` 改会话名 |
 | `herdr-display.ts` | 会话身份投影到 herdr 的 agent 副标题 |
 | `stats.ts` | `/tokens` 扫会话 jsonl 统计 token 与成本（源自 pi-token-stats, MIT） |
-| `pet.ts` | 输入框上方常驻 NONO，状态动效与横向拖动 |
+| `pet.ts` | 右上角常驻 NONO 浮层、状态动效与二维拖动 |
 
 预设的 `model` 是模型原子（`provider/model/thinking`），模型与思考档一起切换：模型切换失败时思考档也不动。
 调 Pi 接口前才把 provider 与模型名拆开。
 
 预设名写入会话记录，重开会话只恢复名字与附加指令，不重放模型和工具切换。
 
-pet：只处理 TUI 会话生命周期；固定高度的 aboveEditor widget 避免动画推动消息流。计时器随 dispose 清理，工作时取代 Working 行。位置保存于本会话 custom entry，不传递对话内容。鼠标由宿主派发，不自行切换终端鼠标模式；不支持鼠标时用 `/nono left|center|right`。
+pet：只处理 TUI 会话生命周期；浮层不占消息流或输入框空间，零高度 widget 绑定宿主 dispose。只通过自己的 overlay handle 关闭，避免误关上层菜单。计时器随 dispose 清理，工作时取代 Working 行。二维相对位置保存于本会话 custom entry，缩放后仍在视口内；底部留三行给输入区，不传递对话内容。鼠标由全屏宿主派发，不自行切换终端鼠标模式；普通终端模式用 `/nono top-right|top-left|center` 定位。
 
 ## herdr-display
 

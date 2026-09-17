@@ -6,7 +6,8 @@
   "pi": {
     "extensions": ["packages/firecode/index.ts"],
     "skills": ["packages/skills"],
-    "prompts": ["packages/prompts"]
+    "prompts": ["packages/prompts"],
+    "themes": ["packages/firecode/themes"]
   },
   "scripts": {
     "test": "bun test --timeout 90000 tests/asset-integrity.test.ts tests/sync-sources.test.ts packages/firecode/tests",

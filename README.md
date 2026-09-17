@@ -16,7 +16,7 @@ BCU 需要原生 helper，见 `packages/better-computer-use/README.md`。
 
 `project-flow` skill 负责把目标、依赖、未决问题和验收条件整理到 Agora，再按授权交给 Seedmux。它复用两个外部 skill：Seedmux 提供 `seedmux-team`，Agora 提供 `canvas`；本仓库不复制它们的 CLI 操作说明。画布和 Seedmux 回执作为项目 tracker 的上下文与证据，不另建任务状态。所有子代理与独立审查者都由 Seedmux 创建，主控就是当前负责集成与验收的 Seedmux pane。独立审查使用 `seedmux-review`。
 
-NONO 是 Pi 输入框上方的常驻像素小挂件，空闲时浮动、眨眼，工作时有环绕动效。`/nono hide|show|left|center|right` 控制显示和位置；支持鼠标的 Pi 终端模式可左右拖动。Agent 调度始终留在 Seedmux。
+NONO 默认悬浮在 Pi 右上角，空闲时浮动、眨眼，工作时有环绕动效。全屏模式可上下左右拖动，`/nono hide|show|top-right|top-left|center` 控制显示和位置。`nono` 主题将界面统一为冰蓝、青色与深蓝，保留暖色警告；在 Pi 设置中选择。Agent 调度始终留在 Seedmux。
 
 ## 和上游的关系
 

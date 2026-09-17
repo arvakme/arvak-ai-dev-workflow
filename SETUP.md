@@ -37,7 +37,9 @@ python3.11 scripts/configure-seedmux.py --apply
 
 它启用 Seedmux 支持的六种 Agent 的 YOLO 开关，并设置 Codex 的持久权限默认值，覆盖 `smx-team` 和恢复会话省略全权参数的路径；保留其余配置并生成备份。不改应用生成的 shim。运行中的 Agent 保持旧权限，新启动/恢复时才读取；显式 CLI 参数仍优先。目录 trust 与执行权限是不同检查，派发必须传真实绝对 cwd，并由官方 `smx-team` 预置信任。已停在权限弹窗的 pane 先恢复到输入态，不能把消息直接注入弹窗。
 
-NONO 随 FireCode 加载，`features.pet` 控制开关；重载 Pi 后在输入框上方常驻。`/nono` 可显示或定位，无需安装额外应用。
+Devin / Cursor 的 CLI 接入由 `scripts/configure-seedmux-agents.py` 管理；默认预览，`--apply` 应用。它复用官方 pane 桥接，不扩展原生菜单。补丁锁定已审查的 Seedmux 版本，应用升级后需重跑；未知版本拒绝修改。运行与恢复权限按各 CLI 的启动参数分别设置，不能靠新增一个未支持的 `*_yolo` 配置键接入 Agent。
+
+NONO 随 FireCode 加载，`features.pet` 控制开关；重载 Pi 后在右上角常驻。全屏模式可鼠标拖动，`/nono` 可显示或定位，无需安装额外应用。Pi 设置中的 `nono` 主题与挂件配色一致。
 
 ## BCU
 

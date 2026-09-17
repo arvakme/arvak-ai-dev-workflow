@@ -34,7 +34,8 @@
     "!provider/openai-native/src/*.test.ts",
     "session/*.ts",
     "statusbar/*.ts",
-    "tools/*.ts"
+    "tools/*.ts",
+    "themes/*.json"
   ],
   "scripts": {
     "test": "bun test"
@@ -42,6 +43,9 @@
   "pi": {
     "extensions": [
       "./index.ts"
+    ],
+    "themes": [
+      "./themes"
     ]
   },
   "peerDependencies": {

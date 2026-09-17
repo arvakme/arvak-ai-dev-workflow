@@ -1,86 +1,99 @@
-/** 常驻 aboveEditor 的 NONO 小挂件。仅绘制本会话状态；Agent 调度归 Seedmux。 */
+/** NONO owns one non-capturing overlay; a zero-height widget owns its disposal. */
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
-import type { Component, TUI, TuiMouseEvent, TuiMouseEventResult } from "@earendil-works/pi-tui";
+import type { Component, OverlayHandle, OverlayOptions, TUI, TuiMouseEvent, TuiMouseEventResult } from "@earendil-works/pi-tui";
 import { nonoFrame, type NonoState } from "./nono-frames.js";
 
 const WIDGET = "firecode-nono";
 const POSITION = "firecode-nono-position";
+type Position = { x: number; y: number };
+const clamp = (value: number) => Math.max(0, Math.min(1, value));
+const percent = (value: number): `${number}%` => `${Number((value * 100).toFixed(4))}%`;
 
 export class NonoWidget implements Component {
 	private frame = 0;
 	private state: NonoState = "idle";
-	private offset = 0;
-	private artWidth = 0;
-	private width = 0;
-	private dragging: { screenX: number; offset: number } | undefined;
+	private dragging: { screenX: number; screenY: number; col: number; row: number } | undefined;
 	private readonly timer: ReturnType<typeof setInterval>;
+	private readonly handle: OverlayHandle;
+	private disposed = false;
 
 	constructor(
 		private readonly tui: TUI,
-		private fraction: number,
-		private readonly save: (fraction: number) => void,
+		private position: Position,
+		private readonly save: (position: Position) => void,
 	) {
+		const self = this;
+		const options: OverlayOptions = {
+			nonCapturing: true,
+			get width() { return tui.terminal.columns >= 18 && tui.terminal.rows >= 24 ? 17 : tui.terminal.columns >= 6 ? 5 : 1; },
+			get row() { return percent(self.position.y); },
+			get col() { return percent(self.position.x); },
+			get margin() { return { right: tui.terminal.columns > 1 ? 1 : 0, bottom: self.bottomMargin }; },
+		};
+		this.handle = tui.showOverlay(this, options);
 		this.timer = setInterval(() => { this.frame++; tui.requestRender(); }, 180);
 		this.timer.unref?.();
 	}
-
+	private get bottomMargin(): number { return Math.min(3, Math.max(0, this.tui.terminal.rows - 1)); }
 	update(state: NonoState): void { this.state = state; this.frame = 0; this.tui.requestRender(); }
-	move(fraction: number): void {
-		this.fraction = Math.max(0, Math.min(1, fraction));
-		this.save(this.fraction);
-		this.tui.requestRender();
-	}
-	render(width: number): string[] {
-		this.width = Math.max(0, width);
-		const rows = this.tui.terminal.rows;
-		this.artWidth = width >= 17 && rows >= 24 ? 17 : width >= 5 ? 5 : width > 0 ? 1 : 0;
-		this.offset = Math.round(Math.max(0, width - this.artWidth) * this.fraction);
-		return nonoFrame(this.state, this.frame, width, rows).map((line) => " ".repeat(this.offset) + line);
-	}
+	render(width: number): string[] { return nonoFrame(this.state, this.frame, width, this.tui.terminal.rows); }
 	handleMouse(event: TuiMouseEvent): TuiMouseEventResult | undefined {
-		if (event.type === "press" && event.button === "left" && event.x >= this.offset && event.x < this.offset + this.artWidth) {
-			this.dragging = { screenX: event.screenX, offset: this.offset };
+		if (this.disposed) return undefined;
+		if (event.type === "press" && event.button === "left") {
+			const bounds = this.handle.getBounds();
+			if (!bounds || event.x < 0 || event.y < 0 || event.x >= bounds.width || event.y >= bounds.height) return undefined;
+			this.dragging = { screenX: event.screenX, screenY: event.screenY, col: bounds.col, row: bounds.row };
 			return { handled: true, capture: true };
 		}
 		if (!this.dragging) return undefined;
-		if (event.type === "drag") {
-			const span = Math.max(0, this.width - this.artWidth);
-			this.fraction = span ? Math.max(0, Math.min(1, (this.dragging.offset + event.screenX - this.dragging.screenX) / span)) : 0.5;
-			return { handled: true };
-		}
-		if (event.type === "release") {
-			this.dragging = undefined;
-			this.save(this.fraction);
+		if (event.type === "drag" || event.type === "release") {
+			const bounds = this.handle.getBounds();
+			if (bounds) {
+				const spanX = Math.max(0, this.tui.terminal.columns - bounds.width - (this.tui.terminal.columns > 1 ? 1 : 0));
+				const spanY = Math.max(0, this.tui.terminal.rows - bounds.height - this.bottomMargin);
+				this.position = {
+					x: spanX ? clamp((this.dragging.col + event.screenX - this.dragging.screenX) / spanX) : this.position.x,
+					y: spanY ? clamp((this.dragging.row + event.screenY - this.dragging.screenY) / spanY) : this.position.y,
+				};
+			}
+			if (event.type === "release") { this.dragging = undefined; this.save({ ...this.position }); }
+			this.tui.requestRender();
 			return { handled: true };
 		}
 		return undefined;
 	}
 	invalidate(): void {}
-	dispose(): void { clearInterval(this.timer); }
+	dispose(): void {
+		if (this.disposed) return;
+		this.disposed = true;
+		clearInterval(this.timer);
+		this.dragging = undefined;
+		// ui.custom's done() pops the top overlay, which may belong to a menu.
+		this.handle.hide();
+	}
 }
 
 export function registerPet(pi: ExtensionAPI): void {
 	let widget: NonoWidget | undefined;
 	let ui: ExtensionContext["ui"] | undefined;
-	let fraction = 0.5;
+	let position: Position = { x: 1, y: 0 };
 	let hidden = false;
 	let state: NonoState = "idle";
 	let settle: ReturnType<typeof setTimeout> | undefined;
-	const save = (next: number) => {
-		fraction = next;
-		pi.appendEntry(POSITION, { fraction });
-	};
+	const save = (next: Position) => { position = next; pi.appendEntry(POSITION, next); };
 	const mount = () => {
 		if (!ui) return;
-		widget?.dispose();
+		ui.setWidget(WIDGET, undefined);
 		widget = undefined;
 		ui.setWorkingVisible(hidden || state !== "working");
-		if (hidden) ui.setWidget(WIDGET, undefined);
-		else ui.setWidget(WIDGET, (tui) => {
-			widget = new NonoWidget(tui, fraction, save);
-			widget.update(state);
-			return widget;
-		}, { placement: "aboveEditor" });
+		if (hidden) return;
+		ui.setWidget(WIDGET, (tui) => {
+			const pet = new NonoWidget(tui, position, save);
+			widget = pet;
+			pet.update(state);
+			// Lifecycle anchor only: no extra content or space in the editor layout.
+			return { render: () => [], invalidate() {}, dispose: () => pet.dispose() };
+		}, { placement: "belowEditor" });
 	};
 	const update = (ctx: ExtensionContext, next: NonoState) => {
 		if (ctx.mode !== "tui") return;
@@ -95,12 +108,12 @@ export function registerPet(pi: ExtensionAPI): void {
 		clearTimeout(settle);
 		ui = ctx.ui;
 		state = "idle";
-		fraction = 0.5;
+		position = { x: 1, y: 0 };
 		for (const entry of ctx.sessionManager.getEntries()) {
 			if (entry.type !== "custom" || entry.customType !== POSITION) continue;
-			const data = entry.data as { fraction?: unknown } | undefined;
-			if (typeof data?.fraction === "number" && Number.isFinite(data.fraction))
-				fraction = Math.max(0, Math.min(1, data.fraction));
+			const data = entry.data as { x?: unknown; y?: unknown } | undefined;
+			if (typeof data?.x === "number" && Number.isFinite(data.x) && typeof data.y === "number" && Number.isFinite(data.y))
+				position = { x: clamp(data.x), y: clamp(data.y) };
 		}
 		mount();
 	});
@@ -117,24 +130,24 @@ export function registerPet(pi: ExtensionAPI): void {
 	});
 	pi.on("session_shutdown", () => {
 		clearTimeout(settle);
-		widget?.dispose();
-		widget = undefined;
 		ui?.setWidget(WIDGET, undefined);
+		widget = undefined;
 		ui?.setWorkingVisible(true);
 		ui = undefined;
 	});
 	pi.registerCommand("nono", {
-		description: "NONO：show / hide / left / center / right（支持鼠标的终端可左右拖动）",
+		description: "NONO：show / hide / top-right / top-left / center（全屏模式可鼠标拖动）",
 		handler: async (args, ctx) => {
 			if (ctx.mode !== "tui") return;
 			const command = args.trim() || "show";
-			if (!["show", "hide", "left", "center", "right"].includes(command)) {
-				ctx.ui.notify("用法：/nono show|hide|left|center|right", "info");
+			const spots: Record<string, Position> = { "top-right": { x: 1, y: 0 }, right: { x: 1, y: 0 }, "top-left": { x: 0, y: 0 }, left: { x: 0, y: 0 }, center: { x: 0.5, y: 0.5 } };
+			if (command !== "show" && command !== "hide" && !Object.hasOwn(spots, command)) {
+				ctx.ui.notify("用法：/nono show|hide|top-right|top-left|center", "info");
 				return;
 			}
 			ui = ctx.ui;
 			hidden = command === "hide";
-			if (["left", "center", "right"].includes(command)) save({ left: 0, center: 0.5, right: 1 }[command]!);
+			if (Object.hasOwn(spots, command)) save(spots[command]);
 			mount();
 		},
 	});
