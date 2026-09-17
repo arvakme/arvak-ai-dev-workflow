@@ -1,7 +1,4 @@
-/**
- * FireCode：个人 pi 定制层——启动横幅、状态栏、工具行渲染、预设、会话命名，
- * Claude 归因、OpenAI 请求层、对抗审查与按需 Master。各功能可在 config.jsonc 的 features 里单独关闭。
- */
+/** FireCode：Pi 的界面、请求配置和NONO 终端挂件；Agent 调度只属于 Seedmux。 */
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { type Feature, loadConfig } from "./config.js";
 import { registerHeader } from "./header.js";
@@ -11,15 +8,11 @@ import { registerPresets } from "./session/presets.js";
 import { registerHerdrDisplay } from "./session/herdr-display.js";
 import { registerSessionName } from "./session/rename.js";
 import { registerStats } from "./session/stats.js";
-import { registerWorkingFlame } from "./session/working-flame.js";
+import { registerPet } from "./session/pet.js";
 import { registerStatusBar } from "./statusbar/index.js";
 import { registerToolRendering } from "./tools/index.js";
-import { registerReview } from "./review/index.js";
-import { registerMaster } from "./master/index.js";
-import { currentSubsessionRole } from "./master/role.js";
-import { registerWatcher } from "./watcher/index.js";
 
-const REGISTRARS: Record<Exclude<Feature, "review" | "master" | "watcher" | "statusbar">, (pi: ExtensionAPI) => void> = {
+const REGISTRARS: Record<Feature, (pi: ExtensionAPI) => void> = {
 	header: registerHeader,
 	tools: registerToolRendering,
 	presets: registerPresets,
@@ -27,27 +20,16 @@ const REGISTRARS: Record<Exclude<Feature, "review" | "master" | "watcher" | "sta
 	stats: registerStats,
 	claudeSub: registerClaudeSub,
 	openaiNative: registerOpenAINative,
-	workingFlame: registerWorkingFlame,
+	pet: registerPet,
+	statusbar: registerStatusBar,
 };
 
-type FirecodeSessionRole = "main" | "worker" | "observer" | "reviewer" | "advisor";
-
-export function registerFirecode(pi: ExtensionAPI, role: FirecodeSessionRole = "main"): void {
+export function registerFirecode(pi: ExtensionAPI): void {
 	const { config, problems } = loadConfig();
-	const subsession = role !== "main";
-	const reviewEnabled = config.features.review !== false;
 	for (const [feature, register] of Object.entries(REGISTRARS)) {
-		const enabled = config.features[feature as Exclude<Feature, "review" | "master" | "watcher" | "statusbar">] !== false;
-		if (enabled) register(pi);
+		if (config.features[feature as Feature] !== false) register(pi);
 	}
-	if (config.features.statusbar !== false) registerStatusBar(pi, subsession);
-	if (config.features.watcher !== false) registerWatcher(pi, {}, subsession);
-	if (config.features.master !== false) registerMaster(pi, {}, subsession);
-	// herdr 显示投影没有开关：herdr 之外自我禁用，只写显示层。
-	registerHerdrDisplay(pi, subsession);
-	// 历史卡渲染与 checkpoint 收口不受 feature 开关控制；开关只控制命令和执行循环。
-	// features 整节类型错误会被安全回退成全关，但那是配置坏而非用户关闭：不封存 checkpoint。
-	registerReview(pi, reviewEnabled, problems.includes("features 必须是对象"));
+	registerHerdrDisplay(pi);
 
 	if (problems.length === 0) return;
 	pi.on("session_start", (_event, ctx) => {
@@ -56,5 +38,5 @@ export function registerFirecode(pi: ExtensionAPI, role: FirecodeSessionRole = "
 }
 
 export default function firecode(pi: ExtensionAPI): void {
-	registerFirecode(pi, currentSubsessionRole() ?? "main");
+	registerFirecode(pi);
 }

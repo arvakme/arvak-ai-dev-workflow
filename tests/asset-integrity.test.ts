@@ -149,10 +149,9 @@ test("FireCode 公开模板启用推荐工作流且不含 Bark", async () => {
 	const module = await loader.loadFirecodeModule("config.ts", {
 		configJsonc: await readFile(join(FIRECODE, "config.example.jsonc"), "utf8"),
 	});
-	const loaded = (module.loadConfig as () => { config: { features: Record<string, boolean>; watcher: { enabled: boolean } } })();
-	for (const feature of ["openaiNative", "master", "review", "watcher"])
+	const loaded = (module.loadConfig as () => { config: { features: Record<string, boolean> } })();
+	for (const feature of ["openaiNative", "pet"])
 		expect(loaded.config.features[feature]).toBe(true);
 	expect(loaded.config.features.claudeSub).toBe(false);
 	expect(loaded.config.features.bark).toBeUndefined();
-	expect(loaded.config.watcher.enabled).toBe(true);
 });

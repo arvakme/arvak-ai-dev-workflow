@@ -2,7 +2,7 @@
  * 把 pi 的会话身份投影到 herdr agent 副标题：`pi·模型/思考等级` + 会话名。
  * 会话名同时以 `session` 自定义 token 上报，供 herdr 侧边栏 `$session` 行布局显示；
  * 只写带 source 的 pane 显示元数据，不碰持久 pane/tab 名；失败静默，不影响会话。
- * herdr 之外、非 TUI 模式或 Master Worker 内自我禁用。
+ * herdr 之外与非 TUI 模式自我禁用。
  */
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { formatModelName } from "../format.js";
@@ -28,9 +28,9 @@ export function projectIdentity(
 	};
 }
 
-export function registerHerdrDisplay(pi: ExtensionAPI, subsession = false): void {
+export function registerHerdrDisplay(pi: ExtensionAPI): void {
 	const env = herdrPaneEnv();
-	if (!env || subsession) return;
+	if (!env) return;
 	const paneId = env.paneId;
 
 	let chain = Promise.resolve();

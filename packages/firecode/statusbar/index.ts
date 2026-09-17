@@ -7,11 +7,8 @@ import { fileQuotaCache } from "./quota-cache.js";
 import { registerQuota } from "./quota.js";
 import type { QuotaStatus } from "./quota-parse.js";
 import {
-	alignRight,
 	fitMetadataLine,
 	fitStatusLine,
-	reviewStatus,
-	statusBadges,
 	latestCacheHitPercent,
 	renderCache,
 	renderContext,
@@ -21,8 +18,7 @@ import {
 } from "./render.js";
 import { type TpsStatus, registerTps } from "./tps.js";
 
-export function registerStatusBar(pi: ExtensionAPI, subsession = false): void {
-	if (subsession) return;
+export function registerStatusBar(pi: ExtensionAPI): void {
 	let quota: QuotaStatus | undefined;
 	let tpsStatus: TpsStatus | undefined;
 	let requestRender = () => {};
@@ -55,7 +51,6 @@ export function registerStatusBar(pi: ExtensionAPI, subsession = false): void {
 				invalidate() {},
 				render(width: number): string[] {
 					const statuses = footerData.getExtensionStatuses();
-					const review = reviewStatus(statuses);
 					const model = ctx.model;
 					const thinkingLevel = pi.getThinkingLevel();
 					const modelCore = `${theme.fg("accent", `🧠 ${formatModelName(model?.id)}`)}${
@@ -98,11 +93,7 @@ export function registerStatusBar(pi: ExtensionAPI, subsession = false): void {
 						separator,
 					);
 					return [
-						alignRight(
-							fitMetadataLine(location, title, width, separator, statusBadges(statuses, separator)),
-							review,
-							width,
-						),
+						fitMetadataLine(location, title, width, separator),
 						statusLine,
 					];
 				},

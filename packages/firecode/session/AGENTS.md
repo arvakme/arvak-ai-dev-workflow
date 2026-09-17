@@ -1,6 +1,6 @@
 # session：会话层功能
 
-预设、改名、`/tokens`、herdr 身份投影、工作火焰。各功能互不依赖，关掉任何一个不影响其余。通知走 Moshi，这里没有 Bark。
+预设、改名、`/tokens`、herdr 身份投影、NONO 挂件。各功能互不依赖，关掉任何一个不影响其余。通知走 Moshi，这里没有 Bark。
 
 | 文件 | 职责 |
 | --- | --- |
@@ -8,15 +8,14 @@
 | `rename.ts` | `/rename` 与 `keys.rename` 改会话名 |
 | `herdr-display.ts` | 会话身份投影到 herdr 的 agent 副标题 |
 | `stats.ts` | `/tokens` 扫会话 jsonl 统计 token 与成本（源自 pi-token-stats, MIT） |
-| `working-flame.ts` | 工作回合内 aboveEditor 居中多行火焰 widget |
+| `pet.ts` | 输入框上方常驻 NONO，状态动效与横向拖动 |
 
 预设的 `model` 是模型原子（`provider/model/thinking`），模型与思考档一起切换：模型切换失败时思考档也不动。
 调 Pi 接口前才把 provider 与模型名拆开。
 
 预设名写入会话记录，重开会话只恢复名字与附加指令，不重放模型和工具切换。
 
-working-flame：高随终端自适应 3–10 行，宽不够逐级降高；回合内隐藏 Working 文本行，订阅占用频道在审查
-活跃期退让。
+pet：只处理 TUI 会话生命周期；固定高度的 aboveEditor widget 避免动画推动消息流。计时器随 dispose 清理，工作时取代 Working 行。位置保存于本会话 custom entry，不传递对话内容。鼠标由宿主派发，不自行切换终端鼠标模式；不支持鼠标时用 `/nono left|center|right`。
 
 ## herdr-display
 
@@ -24,7 +23,7 @@ working-flame：高随终端自适应 3–10 行，宽不够逐级降高；回�
 `title` 写会话名，同一请求的 `tokens.session` 再把会话名供给侧边栏行布局（herdr 侧边栏只消费自定义 token，
 用户 herdr 配置的 pi 行布局引用 `$session`）。
 
-workspace、pane label 与 tab label 都归 herdr、用户或 Master 管；FireCode 不写这些持久名称——tab 是多 pane
+workspace、pane label 与 tab label 都归 herdr 或用户管；FireCode 不写这些持久名称——tab 是多 pane
 共享状态，而 herdr 没有条件 rename/CAS 与清除自定义名的接口，先检查再 rename 无法消除 split/move 竞态。
 
 改名不从 `rename.ts` 接线，只听宿主的 `session_info_changed`（命令、快捷键、自动命名已在宿主收口），另听
@@ -32,4 +31,4 @@ model/thinking 选择。同一身份不重发，只有确认送达才记为已�
 事件重试。非 TUI 模式（print/json/rpc）不投影：无头调用不能接管可见会话的显示。只有 `quit` 清空副标题，
 reload/new/resume/fork 由新会话覆盖。
 
-没有 feature 开关：herdr 之外（无 `HERDR_ENV`）与 Master Worker 内自我禁用。
+没有 feature 开关：herdr 之外（无 `HERDR_ENV`）自我禁用。

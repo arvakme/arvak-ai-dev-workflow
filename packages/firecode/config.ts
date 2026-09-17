@@ -4,7 +4,6 @@ import { join } from "node:path";
 import { getAgentDir } from "@earendil-works/pi-coding-agent";
 import { parseJsonc } from "./jsonc.js";
 
-export type Language = "zh" | "en";
 export type ThinkingLevelValue =
 	| "off"
 	| "minimal"
@@ -31,45 +30,6 @@ export interface Preset {
 	key?: string;
 }
 
-/** /fire-review 配置：审查者 / 顾问模型 + 循环限制。见 config.jsonc 的 review 节注释。 */
-export interface ReviewConfig {
-	advisor: ModelAtom;
-	reviewers: ModelAtom[];
-	/** 审查轮数硬上限。 */
-	maxRounds: number;
-	/** 连续几轮失败触发顾问仲裁。 */
-	advisorAfterFailures: number;
-	/** 单个审查者 / 顾问会话超时（分钟）。 */
-	timeoutMinutes: number;
-	/** 审查者只读工具白名单。 */
-	tools: string[];
-	language: Language;
-}
-
-export const MASTER_ROLES = ["调研员", "工程师", "全栈", "架构师", "设计师", "哨兵"] as const;
-export type MasterRoleName = (typeof MASTER_ROLES)[number];
-
-export interface MasterRole extends ModelAtom {
-	role: MasterRoleName;
-	use: string;
-	fallback: ModelAtom[];
-}
-
-export interface MasterConfig {
-	roles: MasterRole[];
-	workerExcludeExtensions: string[];
-	autoActivate: boolean;
-}
-
-/** 观察员喂给观察会话的增量粒度：minimal 省略 reasoning 与 diff 正文。 */
-export type WatcherContext = "minimal" | "full";
-
-/** Watcher 观察员配置：模型原子必须显式配置，绝不回退默认模型。 */
-export interface WatcherConfig extends ModelAtom {
-	enabled: boolean;
-	context: WatcherContext;
-}
-
 export const FEATURES = [
 	"header",
 	"statusbar",
@@ -79,10 +39,7 @@ export const FEATURES = [
 	"stats",
 	"claudeSub",
 	"openaiNative",
-	"workingFlame",
-	"review",
-	"master",
-	"watcher",
+	"pet",
 ] as const;
 
 export type Feature = (typeof FEATURES)[number];
@@ -103,9 +60,6 @@ export interface FireCodeConfig {
 	features: Partial<Record<Feature, boolean>>;
 	keys: FireCodeKeys;
 	presets: Record<string, Preset>;
-	review: ReviewConfig;
-	master: MasterConfig;
-	watcher: WatcherConfig;
 }
 
 export type LoadedConfig = {
@@ -157,13 +111,6 @@ function rejectUnknownKeys(
 		if (!allowed.includes(key)) problems.push(`未知字段 ${field}.${key}`);
 }
 
-function booleanValue(value: unknown, field: string, fallback: boolean, problems: string[]): boolean {
-	if (value === undefined) return fallback;
-	if (typeof value === "boolean") return value;
-	problems.push(`${field} 必须是 true 或 false`);
-	return fallback;
-}
-
 function stringValue(value: unknown, field: string, problems: string[]): string | undefined {
 	if (typeof value === "string" && value) return value;
 	problems.push(`${field} 必须是非空字符串`);
@@ -186,7 +133,7 @@ function checkFeatures(features: Record<string, unknown>, problems: string[]): v
 			continue;
 		}
 		// 开关只能是布尔：写成字符串 "false" 时因为 `!== false` 仍会启用，
-		// 而启用 review 意味着真实的模型调用，不能静默放行。
+		// 不能把类型错误当成用户授权启用功能。
 		if (typeof value !== "boolean")
 			problems.push(`features.${key} 必须是 true 或 false`);
 	}
@@ -240,24 +187,8 @@ export function loadConfig(): LoadedConfig {
 	};
 	checkFeatures(features, problems);
 	checkKeys(keys, presets, problems);
-	// review 写成字符串/数组/null 或缺字段时不能静默补齐：会拿用户未选择的模型真实发起审查。
-	const reviewProblems: string[] = [];
-	if (raw.review !== undefined && !isPlainObject(raw.review))
-		reviewProblems.push("review 必须是对象");
-	const review = parseReviewConfig(asRecord(raw.review), reviewProblems);
-	if (raw.review !== undefined || features.review !== false) problems.push(...reviewProblems);
-	// master 同理：角色表错误会拿错模型真实发起 Worker，不能静默当空对象。
-	if (raw.master !== undefined && !isPlainObject(raw.master))
-		problems.push("master 必须是对象");
-	const master = parseMasterConfig(asRecord(raw.master), problems);
-	// watcher 同理：缺节或模型有误时功能拒绝启动，静默回退会拿用户没配的模型真实发起观察。
-	const watcherProblems: string[] = [];
-	if (raw.watcher !== undefined && !isPlainObject(raw.watcher))
-		watcherProblems.push("watcher 必须是对象");
-	const watcher = parseWatcherConfig(asRecord(raw.watcher), watcherProblems);
-	if (raw.watcher !== undefined || features.watcher !== false) problems.push(...watcherProblems);
 
-	cached = { config: { features, keys, presets, review, master, watcher }, problems };
+	cached = { config: { features, keys, presets }, problems };
 	return cached;
 }
 
@@ -330,158 +261,4 @@ function parsePreset(value: unknown, field: string, problems: string[]): Preset 
 			: { instructions: stringValue(value.instructions, `${field}.instructions`, problems) }),
 		...(value.key === undefined ? {} : { key: stringValue(value.key, `${field}.key`, problems) }),
 	};
-}
-
-// ---- review 节 ----
-
-const REVIEW_KEYS = new Set([
-	"advisor",
-	"reviewers",
-	"maxRounds",
-	"advisorAfterFailures",
-	"timeoutMinutes",
-	"tools",
-	"language",
-]);
-const DEFAULT_TOOLS = ["read", "grep", "find", "ls", "bash"];
-const LANGUAGES = new Set<Language>(["zh", "en"]);
-
-/** 导出供测试：严格拒绝未知字段（含嵌套），类型错误一律记录而非静默回退。 */
-export function parseReviewConfig(raw: Record<string, unknown>, problems: string[]): ReviewConfig {
-	for (const key of Object.keys(raw)) {
-		if (REVIEW_KEYS.has(key)) continue;
-		problems.push(key === "background"
-			? "review.background 已随审查子进程层删除，请直接移除该键"
-			: `未知字段 review.${key}`);
-	}
-	// advisor 与 reviewers 缺失由模型原子解析自己报形状，不再叠一条泛化的“必须显式配置”。
-	for (const key of REVIEW_KEYS)
-		if (key !== "advisor" && key !== "reviewers" && !(key in raw))
-			problems.push(`review.${key} 必须显式配置`);
-	const advisor = parseModelAtom(raw.advisor, "review.advisor", problems);
-	const reviewers = reviewModels(raw.reviewers, problems);
-	return {
-		advisor,
-		reviewers,
-		maxRounds: reviewInt(raw.maxRounds, "review.maxRounds", 5, 1, 10, problems),
-		advisorAfterFailures: reviewInt(raw.advisorAfterFailures, "review.advisorAfterFailures", 2, 1, 5, problems),
-		timeoutMinutes: reviewInt(raw.timeoutMinutes, "review.timeoutMinutes", 20, 1, 60, problems),
-		tools: reviewTools(raw.tools, problems),
-		language: reviewLanguage(raw.language, problems),
-	};
-}
-
-function reviewModels(value: unknown, problems: string[]): ModelAtom[] {
-	if (!Array.isArray(value) || value.length === 0 || value.length > 5) {
-		problems.push("review.reviewers 必须包含 1–5 个模型原子");
-		return [];
-	}
-	return value.map((item, index) => parseModelAtom(item, `review.reviewers[${index}]`, problems));
-}
-
-function reviewInt(
-	value: unknown,
-	field: string,
-	fallback: number,
-	min: number,
-	max: number,
-	problems: string[],
-): number {
-	if (value === undefined) return fallback;
-	if (typeof value !== "number" || !Number.isInteger(value) || value < min || value > max) {
-		problems.push(`${field} 必须是 ${min}–${max} 的整数`);
-		return fallback;
-	}
-	return value;
-}
-
-function reviewTools(value: unknown, problems: string[]): string[] {
-	if (value === undefined) return [...DEFAULT_TOOLS];
-	if (!Array.isArray(value)) {
-		problems.push("review.tools 必须是字符串数组");
-		return [...DEFAULT_TOOLS];
-	}
-	const tools = value.filter((item): item is string => typeof item === "string" && item.length > 0);
-	if (tools.length !== value.length || tools.length === 0)
-		problems.push("review.tools 必须是非空字符串数组");
-	return tools.length > 0 ? tools : [...DEFAULT_TOOLS];
-}
-
-// ---- master 节 ----
-
-/** 导出供测试：与 review 节同样严格拒绝未知字段，类型错误记录而非静默回退。 */
-export function parseMasterConfig(raw: Record<string, unknown>, problems: string[]): MasterConfig {
-	for (const key of Object.keys(raw))
-		if (key !== "roles" && key !== "workerExcludeExtensions" && key !== "autoActivate")
-			problems.push(`未知字段 master.${key}`);
-	const exclusions = stringArray(raw.workerExcludeExtensions, "master.workerExcludeExtensions", problems);
-	const autoActivate = booleanValue(raw.autoActivate, "master.autoActivate", true, problems);
-	if (raw.roles === undefined)
-		return { roles: [], workerExcludeExtensions: exclusions, autoActivate };
-	if (!isPlainObject(raw.roles) || Object.keys(raw.roles).length === 0) {
-		problems.push("master.roles 必须是至少包含一个固定角色的对象");
-		return { roles: [], workerExcludeExtensions: exclusions, autoActivate };
-	}
-	const configured = raw.roles;
-	for (const role of Object.keys(configured))
-		if (!MASTER_ROLES.includes(role as MasterRoleName))
-			problems.push(`未知角色 master.roles.${role}，可用：${MASTER_ROLES.join(" / ")}`);
-	const roles = MASTER_ROLES.flatMap((role) =>
-		Object.hasOwn(configured, role)
-			? [masterRole(configured[role], `master.roles.${role}`, role, problems)]
-			: []);
-	return { roles, workerExcludeExtensions: exclusions, autoActivate };
-}
-
-function masterRole(
-	value: unknown,
-	field: string,
-	role: MasterRoleName,
-	problems: string[],
-): MasterRole {
-	const record = asRecord(value);
-	rejectUnknownKeys(record, ["model", "use", "fallback"], field, problems);
-	const atom = parseModelAtom(record.model, `${field}.model`, problems);
-	const use = typeof record.use === "string" && record.use ? record.use : "";
-	if (!use) problems.push(`${field}.use 必须是非空字符串`);
-	const fallback = masterFallback(record.fallback, `${field}.fallback`, problems);
-	return { role, ...atom, use, fallback };
-}
-
-function masterFallback(value: unknown, field: string, problems: string[]): ModelAtom[] {
-	if (value === undefined) return [];
-	if (!Array.isArray(value) || value.length > 2) {
-		problems.push(`${field} 必须是至多 2 项的数组`);
-		return [];
-	}
-	return value.map((item, index) => parseModelAtom(item, `${field}[${index}]`, problems));
-}
-
-// ---- watcher 节 ----
-
-const WATCHER_KEYS = ["enabled", "model", "context"] as const;
-const WATCHER_CONTEXTS = new Set<WatcherContext>(["minimal", "full"]);
-
-/** 导出供测试：model 必填（含思考档），enabled 默认 true、context 默认 minimal。 */
-export function parseWatcherConfig(raw: Record<string, unknown>, problems: string[]): WatcherConfig {
-	rejectUnknownKeys(raw, WATCHER_KEYS, "watcher", problems);
-	const enabled = booleanValue(raw.enabled, "watcher.enabled", true, problems);
-	// 模型原子必填：缺失或写错时留空模型并记录问题，观察员据此拒绝启动。
-	const atom = parseModelAtom(raw.model, "watcher.model", problems);
-	let context: WatcherContext = "minimal";
-	if (raw.context !== undefined) {
-		if (typeof raw.context === "string" && WATCHER_CONTEXTS.has(raw.context as WatcherContext))
-			context = raw.context as WatcherContext;
-		else problems.push("watcher.context 必须是 minimal 或 full");
-	}
-	return { enabled, ...atom, context };
-}
-
-function reviewLanguage(value: unknown, problems: string[]): Language {
-	if (value === undefined) return "zh";
-	if (typeof value !== "string" || !LANGUAGES.has(value as Language)) {
-		problems.push("review.language 必须是 zh 或 en");
-		return "zh";
-	}
-	return value as Language;
 }

@@ -8,7 +8,7 @@ import { cleanupFirecodeModules, loadFirecodeModule } from "./loader.js";
 type Handler = (event: any, ctx: any) => unknown;
 type Module = {
 	projectIdentity: (name?: string, model?: string, thinking?: string) => unknown;
-	registerHerdrDisplay: (pi: unknown, subsession?: boolean) => void;
+	registerHerdrDisplay: (pi: unknown) => void;
 };
 
 const cleanups: Array<() => Promise<void>> = [];
@@ -54,7 +54,6 @@ async function herdrStub(failFirst = false) {
 async function register(
 	socketPath: string,
 	env: Record<string, string | undefined> = {},
-	subsession = false,
 ) {
 	const handlers = new Map<string, Handler>();
 	const previous = { ...process.env };
@@ -77,7 +76,7 @@ async function register(
 			handlers.set(name, handler);
 		},
 		getThinkingLevel: () => "medium",
-	} as never, subsession);
+	} as never);
 	return handlers;
 }
 
@@ -159,14 +158,13 @@ test("A→B→A rapid switch re-publishes A instead of leaving stale B", async (
 	expect(herdr.requests.map((item) => item.params.title)).toEqual(["身份-A", "身份-B", "身份-A"]);
 });
 
-test("stays silent outside TUI, inside Master Workers and outside herdr", async () => {
+test("stays silent outside TUI and outside herdr", async () => {
 	const herdr = await herdrStub();
 	const handlers = await register(herdr.path);
 	await handlers.get("session_start")?.({}, context("重命名", "print"));
 	await handlers.get("session_shutdown")?.({ reason: "quit" }, context("重命名", "rpc"));
 	expect(herdr.requests).toHaveLength(0);
 
-	expect((await register(herdr.path, {}, true)).size).toBe(0);
 	expect((await register(herdr.path, { HERDR_ENV: undefined })).size).toBe(0);
 	expect(herdr.requests).toHaveLength(0);
 });

@@ -1,66 +1,20 @@
 # FireCode
 
-Pi 定制层：启动横幅、底部状态栏、工具行渲染、预设与重命名、Anthropic OAuth 归因、`/fire-review`
-对抗性审查、默认激活的 `/fire-master` 多 Agent 主控与 `/fire-watch` 观察员。
+Pi 定制层：终端界面、预设、请求配置和 NONO 终端挂件。所有 Agent（含独立审查者）只能由 Seedmux 的 `seedmux-team` skill 调度；本扩展不得创建子会话、Worker 池或后台主控。
 
-这是本工作站的工作副本，直接改这里。`npm run sync` 会从维护源整目录覆盖 `packages/firecode` 和 `packages/skills`，本地改过就别跑。
+这是本工作站的工作副本。`npm run sync` 会整目录覆盖本地实现，不要运行。
 
-单一入口 `index.ts` 只做一件事：按 `config.features` 逐个调 `registerX(pi)`。每个 register 封闭自己的运行
-状态，关掉任何一个不影响其余。跨模块接缝：Master 只读调 `review/outcome.ts`，Master 复用
-`tools/line.ts` 纯渲染组件画自己的工具行，Review 与 Watcher 经 `master/spawn.ts` 起子会话，
-Watcher 订阅 review 发布的占用频道判静默。
+`index.ts` 按 `config.features` 注册独立功能。状态只归所属模块；`session/pet.ts` 通过 aboveEditor widget 渲染 NONO，`session/nono-frames.ts` 提供像素帧。只读取本会话生命周期，位置按 Pi custom entry 保存；不创建状态目录或桌面进程。
 
-## 模块
+- `session/`：预设、命名、统计、显示投影和 NONO，见 [session/AGENTS.md](session/AGENTS.md)。
+- `statusbar/`：身份、模型、额度与用量，见 [statusbar/AGENTS.md](statusbar/AGENTS.md)。
+- `tools/`：默认工具渲染。不要包装 grep/find/ls，Pi 注册即激活，会改变用户工具集。
+- `provider/`：Anthropic OAuth 归因及 OpenAI/xAI 请求配置。
 
-| 路径 | 职责 | 细则 |
-| --- | --- | --- |
-| `header.ts` | 会话启动横幅，窄终端退化为一行 | |
-| `statusbar/` | 底部两行：会话身份 + 模型/额度/上下文/缓存/速度 | [statusbar/AGENTS.md](statusbar/AGENTS.md) |
-| `tools/` | 接管默认 4 工具（read/bash/edit/write）的渲染，含连续行轨道；不包装 grep/find/ls——原版 pi 注册即激活，包装即强制打开 | |
-| `session/` | 预设、`/rename`、`/tokens`、herdr 身份投影、工作火焰 | [session/AGENTS.md](session/AGENTS.md) |
-| `review/` | `/fire-review` 对抗性审查：多模型并行审、顾问仲裁、checkpoint、结果卡、活动条 | [review/AGENTS.md](review/AGENTS.md) |
-| `master/` | `/fire-master`：进程内 Worker 池、七命令与独立查询、当前动作投影、steer 投递与审查义务 | [master/AGENTS.md](master/AGENTS.md) |
-| `watcher/` | `/fire-watch` 观察员：turn 增量评估与单通道发言 | [watcher/AGENTS.md](watcher/AGENTS.md) |
-| `provider/claude-sub.ts` | Anthropic OAuth 请求补 Claude Code 归因头 | |
-| `provider/openai-native/` | 请求层：OpenAI verbosity、OpenAI/xAI Fast（service_tier=priority）、可选原生压缩 | |
-| `flame-frames.ts` | 品牌火焰帧素材（任意高度缩放），供审查活动框与 working 火焰共用 | |
-| `deliver.ts` | Master 事件与观察员发言共用的统一投递入口：忙时卡片经 steer 队列，闲时前门唤起 | |
-| `herdr-client.ts` | herdr socket 短连接客户端，herdr-display 与 review 占用标签共用 | |
-| `format.ts` `theme.ts` | 共享的宽度/文本格式化与品牌配色、阈值分级 | |
-| `config.ts` | 从 Pi Agent 目录解析唯一运行配置 | |
+带背景卡片的单行截断用 `format.ts` 的 `clip`。Pi 的 `TruncatedText`/`truncateToWidth` 省略号会全量重置 ANSI，破坏外层背景色。
 
-改 `review/` 或 `master/` 前先读对应细则页：两者的状态机、持久化与投递契约都有事故换来的硬约束。
+`tools/grouping.ts` 依赖 Pi 内部组件树与原型 patch，升级宿主优先验证这里。
 
-## 硬约束
+唯一运行配置由 `getAgentDir()` 解析：`extensions/firecode/config.jsonc`。模板不参与运行读取；缺配置关闭可选功能并在会话启动警告。模型原子统一为 `provider/model/thinking`，不要重新引入拆字段兼容层。快捷键启动时绑定，改配置需重载 Pi。
 
-带背景的卡片里禁用 pi-tui `TruncatedText`/`truncateToWidth`：其省略号带 `\x1b[0m` 全量重置，会在截断点掐断
-外层背景色（上游 #4894 已报被拒修）；单行截断一律用 `format.ts` 的 `clip`。
-
-投递统一经根级 `deliver.ts`：宿主流式中投卡片经 steer 队列，会话歇透时走 `sendUserMessage` 前门唤起。两条红线都是事故换来的：回合进行中以 `triggerTurn: false` 立即追加会造成快照与状态分叉、提示词缓存整段重写（#28）；以 `triggerTurn: true` 唤起歇透会话会跳过 `before_agent_start`，系统提示注入随回合抖动同样整段重写（#33，宿主缺陷，已报上游）。忙闲判断与发送必须同一事件循环节拍内完成，中间禁止 await。
-
-`tools/grouping.ts` 依赖 pi 内部组件树与原型 patch，是与宿主耦合最紧的一处，升级 pi 时优先检查。
-
-## 配置
-
-唯一运行配置是 Pi Agent 目录（由官方 `getAgentDir()` 解析，含 `PI_CODING_AGENT_DIR` 覆写）下的
-`extensions/firecode/config.jsonc`；安装流程当场生成完整私人配置。公开的 `config.example.jsonc` 是维护者当前的
-完整推荐配置：通知走 Moshi 所以没有 Bark；`claudeSub` 默认关。Master 与 Watcher 在新会话自动激活；Watcher 每回合调用模型，priority 按
-供应商规则加价。配置模板只是起始样例，不参与运行时读取。缺失运行配置时关闭可选功能，并在每次
-`session_start` 警告一次；运行中补上配置也需重启 Pi 才生效。改完本机运行配置后，把其中属于推荐配置的部分
-同步进 `config.example.jsonc`，个人化内容（自定义 instructions、私人扩展名）留在本机。
-
-配置里凡是指定模型的位置都写同一个模型原子 `"provider/model/thinking"`（presets、review、master.roles、
-watcher），解析在 `config.ts` 的 `parseModelAtom` 一处收口；旧的分字段与两段式写法一律报配置问题。
-
-不要新建 keys.json，也不要读项目级配置。快捷键启动时绑定，改完需重启；`ctrl+f` 只改 `openai` 节，其它注释
-保留。未知字段、嵌套未知字段与类型错误都报配置问题；`review`、`master` 与 `watcher` 节有问题时对应功能
-拒绝启动而不是回退默认——静默回退会拿用户没配的模型真实发起调用。
-
-## 测试
-
-```bash
-bun test
-```
-
-`tests/loader.ts` 从 `PATH` 中的开发版 `pi` 定位 pi-mono；非开发版安装通过 `PI_PACKAGES_DIR` 指向其
-`packages/`。loader 把当前仓库复制到临时目录并改写宿主包导入，供需要运行时值的用例使用。
+测试见根 `package.json`；`tests/loader.ts` 通过 `PI_PACKAGES_DIR` 定位宿主，并把运行源码复制到临时目录以隔离配置。

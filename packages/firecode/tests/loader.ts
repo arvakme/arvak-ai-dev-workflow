@@ -34,15 +34,6 @@ const PI_TUI = pathToFileURL(join(PI_PACKAGES, "tui/src/index.ts")).href;
 
 const created: string[] = [];
 const NON_RUNTIME_ROOTS = new Set([".git", "docs", "tests"]);
-export const TEST_REVIEW_CONFIG = {
-	advisor: "test/advisor/high",
-	reviewers: ["test/reviewer/high"],
-	maxRounds: 3,
-	advisorAfterFailures: 2,
-	timeoutMinutes: 1,
-	tools: ["read", "bash"],
-	language: "zh",
-};
 const TEST_CONFIG_JSONC = JSON.stringify({
 	features: {
 		header: true,
@@ -53,13 +44,10 @@ const TEST_CONFIG_JSONC = JSON.stringify({
 		stats: true,
 		claudeSub: false,
 		openaiNative: false,
-		workingFlame: true,
-		review: true,
-		master: false,
+		pet: false,
 	},
 	keys: { rename: "ctrl+r", cyclePreset: "ctrl+shift+u", fast: "ctrl+f" },
 	presets: { deep: { model: "test/deep/high", key: "alt+1" } },
-	review: TEST_REVIEW_CONFIG,
 });
 
 export async function copyFirecodeSource(destination: string): Promise<void> {
@@ -70,9 +58,7 @@ export async function copyFirecodeSource(destination: string): Promise<void> {
 			const [root] = path.split(sep);
 			if (NON_RUNTIME_ROOTS.has(root)) return false;
 			if (![".md", ".mdx"].includes(extname(path))) return true;
-			return path.startsWith(`master${sep}prompts${sep}`)
-				|| path.startsWith(`review${sep}prompts${sep}`)
-				|| path.startsWith(`watcher${sep}prompts${sep}`);
+			return false;
 		},
 	});
 }

@@ -1,29 +1,15 @@
 # FireCode
 
-FireCode 是一个模块化 Pi Package，提供终端状态与工具渲染、会话预设、`/fire-review` 对抗审查、`/fire-master` 进程内子代理委派和 `/fire-watch` 观察员。指挥官与观察员的新会话状态由配置决定，裸命令只翻转当前会话；各模块由功能开关独立注册，关闭任一模块不会改变其余模块。
+FireCode 提供 Pi 的终端界面、会话预设、请求配置和 NONO 终端挂件。多 Agent 执行与独立审查统一使用 Seedmux；项目关系用 Agora 梳理。
 
-## 安装
-
-本目录在 arvak-ai-dev-workflow 里，经仓库根 `package.json` 作为 Pi package 安装：
+经仓库根 `package.json` 安装本地 Pi package：
 
 ```bash
 pi install ~/Devs/workstation
 ```
 
-Pi Package 拥有与 Pi 相同的本机权限。
+运行配置是 `~/.pi/agent/extensions/firecode/config.jsonc`，模板见 `config.example.jsonc`。缺少配置时关闭可选功能并提示；模板本身不会被运行读取。预设模型统一写 `provider/model/thinking`。通知走 Moshi，`claudeSub` 默认关闭。
 
-## 配置
+`features.pet` 在输入框上方显示常驻像素 NONO，空闲时浮动眨眼。`/nono hide|show|left|center|right` 控制显示与位置，支持鼠标的 Pi 模式可左右拖动。改配置后重载 Pi。独立审查用工作站的 `seedmux-review` skill，派发与回执用 Seedmux 官方 `seedmux-team`。
 
-运行配置在 `~/.pi/agent/extensions/firecode/config.jsonc`。模板是同目录 `config.example.jsonc`。
-
-公开模板是 arvak 当前配置：通知走 Moshi，没有 Bark；`claudeSub` 默认关。Master 与 Watcher 在新会话自动激活。Watcher 会在每个主会话回合后调用模型，xAI priority 会按供应商规则加价；复制前应确认列出的模型均已认证并接受额外费用。配置里指定模型一律写 `"provider/model/thinking"`；审查与观察员的模型必须显式写入运行配置，否则对应功能拒绝启动。缺少运行配置时，FireCode 会关闭可选功能并在会话启动时警告；配置模板本身不会被运行时读取。
-
-## 开发
-
-需要 [Bun](https://bun.sh/) 和一个 pi-mono checkout。开发版 `pi` 在 `PATH` 中时，测试会自动定位它；否则设置 `PI_PACKAGES_DIR` 为 pi-mono 的 `packages/` 目录。
-
-```bash
-bun test
-```
-
-模块边界、状态机约束和领域术语见 `AGENTS.md`、各模块的 `AGENTS.md` 与 `CONTEXT.md`。
+开发验证：在仓库根运行 `bun run test`。测试 loader 用 `PI_PACKAGES_DIR` 指向 pi-mono 的 `packages/`，开发版 Pi 在 PATH 时可自动定位。

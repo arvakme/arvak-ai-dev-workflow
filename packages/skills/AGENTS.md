@@ -4,9 +4,13 @@
 - `development/`：本地开发、测试、审计和项目治理。
 - `matt/`：Matt Pocock 工程与生产力工作流的完整中文译本。
 - `frontend/`：前端设计与 UI polish。
-- `operations/`：运维连接、远程操作、Herdr 终端与桌面自动化；多 Agent 编排由 FireCode `/master` 负责。
+- `operations/`：运维连接、远程操作、Herdr 终端与桌面自动化；所有子代理（包括独立审查者）的编排由 Seedmux 的外部 `seedmux-team` skill 负责。
 - `web-search/`：Brave、Exa、Context7 的统一网络与文档搜索入口。
 - `search-skills/`：按需定位冷归档 Skill。
+
+独立审查使用 `development/seedmux-review`；派发复用应用的 `seedmux-team`，禁止另建进程内子会话或 Worker 池。
+
+项目流程整理使用 `development/project-flow`：Agora 白板承载目标、依赖与决策，Seedmux 调度真实 Agent pane，项目 tracker 保持任务状态权威。`seedmux-team` 与 `canvas` 由对应应用提供，Pi 从全局 skills 发现，不在此维护副本。明确操作 tldraw Desktop 时才走 `tldraw-offline`。
 
 ## 手动 Skill
 
@@ -34,5 +38,3 @@
 | 为仓库配置 tracker、标签与领域文档 | `setup-matt-pocock-skills` |
 
 Matt 工单流首次用于某个仓库前，先运行 `setup-matt-pocock-skills`。
-
-管理、更新与归档规则见 `../docs/skills-management.md`。
