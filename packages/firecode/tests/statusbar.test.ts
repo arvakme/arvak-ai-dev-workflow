@@ -1,6 +1,6 @@
 import { afterAll, expect, test } from "bun:test";
 import { cleanupFirecodeModules, loadFirecodeModule, PI_TUI_URL, PI_CODING_AGENT_URL } from "./loader.ts";
-import palette from "../themes/nono.json";
+import palette from "../themes/butler.json";
 const { visibleWidth } = await import(PI_TUI_URL);
 const { Theme } = await import(PI_CODING_AGENT_URL);
 afterAll(cleanupFirecodeModules);

@@ -1,17 +1,17 @@
-/** NONO owns one non-capturing overlay; a zero-height widget owns its disposal. */
+/** Butler owns one non-capturing overlay; a zero-height widget owns its disposal. */
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import type { Component, OverlayHandle, OverlayOptions, TUI, TuiMouseEvent, TuiMouseEventResult } from "@earendil-works/pi-tui";
-import { nonoFrame, type NonoState } from "./nono-frames.js";
+import { butlerFrame, type ButlerState } from "./butler-frames.js";
 
-const WIDGET = "firecode-nono";
-const POSITION = "firecode-nono-position";
+const WIDGET = "firecode-butler";
+const POSITION = "firecode-butler-position";
 type Position = { x: number; y: number };
 const clamp = (value: number) => Math.max(0, Math.min(1, value));
 const percent = (value: number): `${number}%` => `${Number((value * 100).toFixed(4))}%`;
 
-export class NonoWidget implements Component {
+export class ButlerWidget implements Component {
 	private frame = 0;
-	private state: NonoState = "idle";
+	private state: ButlerState = "idle";
 	private dragging: { screenX: number; screenY: number; col: number; row: number } | undefined;
 	private readonly timer: ReturnType<typeof setInterval>;
 	private readonly handle: OverlayHandle;
@@ -35,8 +35,8 @@ export class NonoWidget implements Component {
 		this.timer.unref?.();
 	}
 	private get bottomMargin(): number { return Math.min(3, Math.max(0, this.tui.terminal.rows - 1)); }
-	update(state: NonoState): void { this.state = state; this.frame = 0; this.tui.requestRender(); }
-	render(width: number): string[] { return nonoFrame(this.state, this.frame, width, this.tui.terminal.rows); }
+	update(state: ButlerState): void { this.state = state; this.frame = 0; this.tui.requestRender(); }
+	render(width: number): string[] { return butlerFrame(this.state, this.frame, width, this.tui.terminal.rows); }
 	handleMouse(event: TuiMouseEvent): TuiMouseEventResult | undefined {
 		if (this.disposed) return undefined;
 		if (event.type === "press" && event.button === "left") {
@@ -74,11 +74,11 @@ export class NonoWidget implements Component {
 }
 
 export function registerPet(pi: ExtensionAPI): void {
-	let widget: NonoWidget | undefined;
+	let widget: ButlerWidget | undefined;
 	let ui: ExtensionContext["ui"] | undefined;
 	let position: Position = { x: 1, y: 0 };
 	let hidden = false;
-	let state: NonoState = "idle";
+	let state: ButlerState = "idle";
 	let settle: ReturnType<typeof setTimeout> | undefined;
 	const save = (next: Position) => { position = next; pi.appendEntry(POSITION, next); };
 	const mount = () => {
@@ -88,14 +88,14 @@ export function registerPet(pi: ExtensionAPI): void {
 		ui.setWorkingVisible(hidden || state !== "working");
 		if (hidden) return;
 		ui.setWidget(WIDGET, (tui) => {
-			const pet = new NonoWidget(tui, position, save);
+			const pet = new ButlerWidget(tui, position, save);
 			widget = pet;
 			pet.update(state);
 			// Lifecycle anchor only: no extra content or space in the editor layout.
 			return { render: () => [], invalidate() {}, dispose: () => pet.dispose() };
 		}, { placement: "belowEditor" });
 	};
-	const update = (ctx: ExtensionContext, next: NonoState) => {
+	const update = (ctx: ExtensionContext, next: ButlerState) => {
 		if (ctx.mode !== "tui") return;
 		clearTimeout(settle);
 		ui = ctx.ui;
@@ -110,7 +110,7 @@ export function registerPet(pi: ExtensionAPI): void {
 		state = "idle";
 		position = { x: 1, y: 0 };
 		for (const entry of ctx.sessionManager.getEntries()) {
-			if (entry.type !== "custom" || entry.customType !== POSITION) continue;
+			if (entry.type !== "custom" || (entry.customType !== POSITION && entry.customType !== "firecode-nono-position")) continue;
 			const data = entry.data as { x?: unknown; y?: unknown } | undefined;
 			if (typeof data?.x === "number" && Number.isFinite(data.x) && typeof data.y === "number" && Number.isFinite(data.y))
 				position = { x: clamp(data.x), y: clamp(data.y) };
@@ -135,14 +135,14 @@ export function registerPet(pi: ExtensionAPI): void {
 		ui?.setWorkingVisible(true);
 		ui = undefined;
 	});
-	pi.registerCommand("nono", {
-		description: "NONO：show / hide / top-right / top-left / center（全屏模式可鼠标拖动）",
+	pi.registerCommand("butler", {
+		description: "Butler：show / hide / top-right / top-left / center（全屏模式可鼠标拖动）",
 		handler: async (args, ctx) => {
 			if (ctx.mode !== "tui") return;
 			const command = args.trim() || "show";
 			const spots: Record<string, Position> = { "top-right": { x: 1, y: 0 }, right: { x: 1, y: 0 }, "top-left": { x: 0, y: 0 }, left: { x: 0, y: 0 }, center: { x: 0.5, y: 0.5 } };
 			if (command !== "show" && command !== "hide" && !Object.hasOwn(spots, command)) {
-				ctx.ui.notify("用法：/nono show|hide|top-right|top-left|center", "info");
+				ctx.ui.notify("用法：/butler show|hide|top-right|top-left|center", "info");
 				return;
 			}
 			ui = ctx.ui;

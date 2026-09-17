@@ -3,21 +3,21 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { cleanupFirecodeModules, loadFirecodeModule, PI_CODING_AGENT_URL, PI_TUI_URL } from "./loader.ts";
-import { NonoWidget } from "../session/pet.ts";
-import themeJson from "../themes/nono.json";
+import { ButlerWidget } from "../session/pet.ts";
+import themeJson from "../themes/butler.json";
 
 const { TuiAltScreen, visibleWidth } = await import(PI_TUI_URL);
 const { DefaultResourceLoader, SettingsManager, Theme } = await import(PI_CODING_AGENT_URL);
 afterAll(cleanupFirecodeModules);
 
-test("the real fullscreen host dispatches 2D dragging and preserves a menu when NONO closes", () => {
+test("the real fullscreen host dispatches 2D dragging and preserves a menu when Butler closes", () => {
 	const terminal = { columns: 80, rows: 30, hideCursor() {} };
 	const tui = new TuiAltScreen(terminal, false);
 	tui.requestRender = () => {};
 	const editor = { render: () => ["input"], invalidate() {} };
 	tui.setFocus(editor);
 	const saved: any[] = [];
-	const pet = new NonoWidget(tui, { x: 1, y: 0 }, (position) => saved.push(position));
+	const pet = new ButlerWidget(tui, { x: 1, y: 0 }, (position) => saved.push(position));
 	try {
 		tui.compositeOverlays([], 80, 30);
 		expect(tui.focusedComponent).toBe(editor);
@@ -36,7 +36,7 @@ test("the real fullscreen host dispatches 2D dragging and preserves a menu when 
 	} finally { pet.dispose(); }
 });
 
-test("the compact header stays within its width and reserves NONO's corner", async () => {
+test("the compact header stays within its width and reserves Butler's corner", async () => {
 	const { registerHeader } = await loadFirecodeModule("header.ts");
 	const colors = Object.fromEntries(Object.entries(themeJson.colors).map(([key, value]) => [key, (themeJson.vars as any)[value] ?? value]));
 	const theme = new Theme(colors, colors, "truecolor");
@@ -53,8 +53,8 @@ test("the compact header stays within its width and reserves NONO's corner", asy
 	expect(header.render(80).join("\n")).toContain("Butler Code");
 });
 
-test("Pi discovers NONO through the package manifest and resolves every color", async () => {
-	const agentDir = await mkdtemp(resolve(tmpdir(), "nono-theme-"));
+test("Pi discovers Butler through the package manifest and resolves every color", async () => {
+	const agentDir = await mkdtemp(resolve(tmpdir(), "butler-theme-"));
 	try {
 		const settingsManager = SettingsManager.inMemory({ packages: [resolve(import.meta.dir, "../../..")] });
 		const loader = new DefaultResourceLoader({ cwd: agentDir, agentDir, settingsManager,
@@ -62,7 +62,7 @@ test("Pi discovers NONO through the package manifest and resolves every color", 
 		await loader.reload();
 		const { themes, diagnostics } = loader.getThemes();
 		expect(diagnostics).toEqual([]);
-		const theme = themes.find((item: any) => item.name === "nono");
+		const theme = themes.find((item: any) => item.name === "butler");
 		expect(theme).toBeDefined();
 		for (const key of Object.keys(themeJson.colors)) {
 			if (key.endsWith("Bg")) expect(theme.bg(key, "sample")).toContain("sample");

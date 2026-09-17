@@ -3,7 +3,7 @@
 Pi 包入口是仓库根 `package.json`：`pi.extensions` → FireCode，`pi.skills` → `packages/skills`。
 
 - 改 FireCode preset：改 `~/.pi/agent/extensions/firecode/config.jsonc`
-- 改工具行 / 状态栏 / NONO 挂件：读 `packages/firecode/AGENTS.md`
+- 改工具行 / 状态栏 / Butler 挂件：读 `packages/firecode/AGENTS.md`
 - 改 BCU：读 `packages/better-computer-use/README.md`
 - architecture-wiki 事实源是 `https://github.com/arvakme/architecture-wiki`（默认 2D，3D 可选），不要从 Suge8 覆盖
 - Agent 调度用 Seedmux 自带 `seedmux-team` skill 和 `~/.seedmux/bin/smx-team`；不在本仓库复制官方 skill。所有子代理和审查者必须由 Seedmux 创建；禁止 FireCode 自建子会话、Worker 池或另一个主控。Master 职责属于 Seedmux 中的当前主控 pane。

@@ -40,7 +40,7 @@ python3.11 scripts/configure-seedmux.py --apply
 
 Devin / Cursor 的 CLI 接入由 `scripts/configure-seedmux-agents.py` 管理；默认预览，`--apply` 应用。它复用官方 pane 桥接，不扩展原生菜单。补丁锁定已审查的 Seedmux 版本，应用升级后需重跑；未知版本拒绝修改。运行与恢复权限按各 CLI 的启动参数分别设置，不能靠新增一个未支持的 `*_yolo` 配置键接入 Agent。
 
-NONO 随 FireCode 加载，`features.pet` 控制开关；重载 Pi 后在右上角常驻。全屏模式可鼠标拖动，`/nono` 可显示或定位，无需安装额外应用。Pi 设置中的 `nono` 主题与挂件配色一致。
+Butler 随 FireCode 加载，`features.pet` 控制开关；重载 Pi 后在右上角常驻。全屏模式可鼠标拖动，`/butler` 可显示或定位，无需安装额外应用。Pi 设置中的 `butler` 主题与挂件配色一致。
 
 ## BCU
 

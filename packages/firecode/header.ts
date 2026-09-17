@@ -9,7 +9,7 @@ export function registerHeader(pi: ExtensionAPI): void {
 			invalidate() {},
 			render(width: number): string[] {
 				const available = Math.max(0, width - (width >= 40 ? 20 : 0));
-				const title = `${theme.fg("accent", "◈")}  ${theme.bold(theme.fg("text", "Butler Code"))}`;
+				const title = `${theme.fg("borderAccent", "◈")}  ${theme.bold(theme.fg("accent", "Butler Code"))}`;
 				const subtitle = theme.fg("muted", "think · build · explore");
 				return [clip(title, available, "end", ""), clip(subtitle, available, "end", ""), ""];
 			},

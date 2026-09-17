@@ -1,5 +1,5 @@
 {
-	// arvak：模型一律 "provider/model/thinking"。通知走 Moshi，Agent 调度走 Seedmux，pet 显示常驻 NONO。
+	// arvak：模型一律 "provider/model/thinking"。通知走 Moshi，Agent 调度走 Seedmux，pet 显示常驻 Butler。
 	"features": {
 		"header": true,
 		"statusbar": true,

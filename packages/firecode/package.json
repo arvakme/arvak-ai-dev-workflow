@@ -1,7 +1,7 @@
 {
   "name": "pi-firecode",
   "version": "0.8.1",
-  "description": "Pi terminal UI, session presets, provider configuration and an animated terminal NONO companion",
+  "description": "Pi terminal UI, session presets, provider configuration and an animated terminal Butler companion",
   "type": "module",
   "license": "MIT",
   "repository": {

@@ -1,5 +1,5 @@
-/** Small shaded NONO sprite: twelve subpixel rows inside the original six-line terminal footprint. */
-export type NonoState = "idle" | "working" | "done" | "error";
+/** Small shaded Butler sprite: twelve subpixel rows inside the original six-line terminal footprint. */
+export type ButlerState = "idle" | "working" | "done" | "error";
 
 const RESET = "\x1b[0m";
 const COLORS: Record<string, string> = {
@@ -26,7 +26,7 @@ function pixel(top: string, bottom: string): string {
 	if (bottom === " ") return `\x1b[38;2;${COLORS[top]}m▀${RESET}`;
 	return `\x1b[38;2;${COLORS[top]}m\x1b[48;2;${COLORS[bottom]}m▀${RESET}`;
 }
-export function nonoFrame(state: NonoState, frame: number, available: number, rows = 30): string[] {
+export function butlerFrame(state: ButlerState, frame: number, available: number, rows = 30): string[] {
 	if (available <= 0) return [];
 	const blink = state === "idle" && frame % 32 >= 30;
 	const cyan = `\x1b[38;2;${COLORS[state === "error" ? "r" : "c"]}m`;

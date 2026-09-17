@@ -1,4 +1,4 @@
-/** FireCode：Pi 的界面、请求配置和NONO 终端挂件；Agent 调度只属于 Seedmux。 */
+/** FireCode：Pi 的界面、请求配置和Butler 终端挂件；Agent 调度只属于 Seedmux。 */
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { type Feature, loadConfig } from "./config.js";
 import { registerHeader } from "./header.js";

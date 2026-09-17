@@ -1,6 +1,6 @@
 # arvak-ai-dev-workflow
 
-arvak 的开发工作流：**Agora 白板梳理项目 → Seedmux 调度 Agents → Pi / 原生 CLI 实现与验证**。FireCode 提供 Pi 界面与 NONO 终端挂件，BCU 提供桌面操作，Skills 连接工作方法。
+arvak 的开发工作流：**Agora 白板梳理项目 → Seedmux 调度 Agents → Pi / 原生 CLI 实现与验证**。FireCode 提供 Pi 界面与 Butler 终端挂件，BCU 提供桌面操作，Skills 连接工作方法。
 
 终端、窗管、SketchyBar 在 [`~/.config`](https://github.com/arvakme/dotfiles)（Kitty + AeroSpace），不在这个仓库。不要装 Ghostty / Starship，也不要跑上游 `SETUP.md`。
 
@@ -16,7 +16,7 @@ BCU 需要原生 helper，见 `packages/better-computer-use/README.md`。
 
 `project-flow` skill 负责把目标、依赖、未决问题和验收条件整理到 Agora，再按授权交给 Seedmux。它复用两个外部 skill：Seedmux 提供 `seedmux-team`，Agora 提供 `canvas`；本仓库不复制它们的 CLI 操作说明。画布和 Seedmux 回执作为项目 tracker 的上下文与证据，不另建任务状态。所有子代理与独立审查者都由 Seedmux 创建，主控就是当前负责集成与验收的 Seedmux pane。独立审查使用 `seedmux-review`。
 
-NONO 默认悬浮在 Pi 右上角，空闲时浮动、眨眼，工作时有环绕动效。全屏模式可上下左右拖动，`/nono hide|show|top-right|top-left|center` 控制显示和位置。`nono` 主题将界面统一为冰蓝、青色与深蓝，保留暖色警告；在 Pi 设置中选择。Agent 调度始终留在 Seedmux。
+Butler 默认悬浮在 Pi 右上角，空闲时浮动、眨眼，工作时有环绕动效。全屏模式可上下左右拖动，`/butler hide|show|top-right|top-left|center` 控制显示和位置。`butler` 主题将界面统一为冰蓝、青色与深蓝，保留暖色警告；在 Pi 设置中选择。Agent 调度始终留在 Seedmux。
 
 ## 和上游的关系
 
@@ -30,3 +30,5 @@ NONO 默认悬浮在 Pi 右上角，空闲时浮动、眨眼，工作时有环�
 git fetch upstream
 # 按需：git checkout upstream/main -- packages/firecode/某文件
 ```
+
+Butler 的原始 2D 造型、空闲动画与参考渲染收藏于 [assets/butler](assets/butler)；渲染图仅作造型参考，终端仍使用像素版。

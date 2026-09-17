@@ -1,0 +1,40 @@
+{
+  "character": "Butler",
+  "baseline_version": 1,
+  "source_commit": "b6c04f9eed117c1616c7401b92f08ac9bfcf4f90",
+  "source_path_at_commit": "packages/firecode/session/nono-frames.ts",
+  "runtime_source": "packages/firecode/session/butler-frames.ts",
+  "terminal_size": {
+    "columns": 17,
+    "rows": 6
+  },
+  "pixel_canvas": {
+    "width": 17,
+    "height": 12
+  },
+  "idle": {
+    "frames": 48,
+    "frame_duration_ms": 180
+  },
+  "export": {
+    "scale": 10,
+    "padding_pixels": 1,
+    "background": "#0a1726"
+  },
+  "render": {
+    "mode": "reference-image generation",
+    "requested_model": "gpt-image-2.5",
+    "tool": "image_gen.imagegen",
+    "actual_model": "not exposed by tool; exact requested model unverified",
+    "reference": "pixel-v1.png",
+    "prompt": "render-v1.prompt.txt",
+    "purpose": "Preview only; terminal sprite remains the 2D baseline"
+  },
+  "sha256": {
+    "pixel-v1.png": "3f9677372dbf1e499e7683074fc7fefb99cd8be185cc879cd022392ff0dbe34b",
+    "render-v1.png": "2b604fdeff9135d0b7021c6ffe50065adf9542b7aa7e6904a3d113d480450268",
+    "render-v1.prompt.txt": "3ee4f6eecc2d3ce23aef773b31d8e1181ed23f44c3c7ae0e2e0a5642782d635a",
+    "idle-v1.frames.json": "ea65a24ee6bc9e28f70fbb57f3b70288273a7b3f8fdd63b33632d00765f93576",
+    "idle-v1.gif": "d32b5af7efc6ed0bb30f2913df46dd5f8bac7d45d78c8e4bb1fd43c1b30c7fdc"
+  }
+}

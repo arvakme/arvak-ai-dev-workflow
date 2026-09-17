@@ -1,6 +1,6 @@
 import { afterEach, expect, test } from "bun:test";
-import { NonoWidget, registerPet } from "../session/pet.ts";
-import { nonoFrame } from "../session/nono-frames.ts";
+import { ButlerWidget, registerPet } from "../session/pet.ts";
+import { butlerFrame } from "../session/butler-frames.ts";
 
 const cleanups: Array<() => void> = [];
 afterEach(() => { for (const clean of cleanups.splice(0)) clean(); });
@@ -53,13 +53,13 @@ function setup(mode = "tui") {
 	const emit = (name: string, event: any = {}) => handlers.get(name)!(event, ctx);
 	cleanups.push(() => emit("session_shutdown"));
 	return { emit, ctx, positions, entries, commands, tui, overlays,
-		get anchor() { return anchor; }, get widget(): NonoWidget | undefined { return overlays[0]?.component; },
+		get anchor() { return anchor; }, get widget(): ButlerWidget | undefined { return overlays[0]?.component; },
 		get workingVisible() { return workingVisible; } };
 }
 const mouse = (type: string, screenX: number, screenY: number, x = 3, y = 2) =>
 	({ type, button: "left", x, y, screenX, screenY, width: 17, height: 6, shift: false, alt: false, ctrl: false }) as any;
 
-test("NONO floats at top-right without taking focus or editor space and stays across turns", () => {
+test("Butler floats at top-right without taking focus or editor space and stays across turns", () => {
 	const pet = setup(); pet.emit("session_start");
 	const widget = pet.widget;
 	expect(widget).toBeDefined(); expect(pet.tui.focus).toBe("editor");
@@ -75,14 +75,14 @@ test("frames stay within narrow terminals and keep stable height while bobbing a
 	for (const state of ["idle", "working", "done", "error"] as const)
 		for (const width of [0, 1, 4, 5, 16, 17, 80])
 			for (let frame = 0; frame < 33; frame++) {
-				const lines = nonoFrame(state, frame, width, 30);
+				const lines = butlerFrame(state, frame, width, 30);
 				expect(lines.every((line) => [...plain(line)].length <= width)).toBeTrue();
 				expect(lines.length).toBe(width === 0 ? 0 : width < 17 ? 1 : 6);
 				expect(lines.join("")).not.toContain("undefined");
 			}
-	expect(nonoFrame("idle", 0, 80)).not.toEqual(nonoFrame("idle", 8, 80));
-	expect(nonoFrame("idle", 0, 80)).not.toEqual(nonoFrame("idle", 30, 80));
-	expect(nonoFrame("idle", 0, 80, 15)).toHaveLength(1);
+	expect(butlerFrame("idle", 0, 80)).not.toEqual(butlerFrame("idle", 8, 80));
+	expect(butlerFrame("idle", 0, 80)).not.toEqual(butlerFrame("idle", 30, 80));
+	expect(butlerFrame("idle", 0, 80, 15)).toHaveLength(1);
 });
 
 test("dragging moves both axes, clamps to viewport, persists only on release, and never focuses", () => {
@@ -108,29 +108,29 @@ test("resize keeps normalized placement and collapses the sprite on small panes"
 	expect(options.width).toBe(17); expect(options.col).toBe("100%");
 });
 
-test("hide, reload and shutdown remove only NONO, preserving menus and cancelling animation", async () => {
+test("hide, reload and shutdown remove only Butler, preserving menus and cancelling animation", async () => {
 	const pet = setup(); pet.emit("session_start");
 	const menu = { component: {}, options: {} }; pet.overlays.push(menu);
 	pet.tui.focus = "menu";
-	await pet.commands.get("nono").handler("hide", pet.ctx);
+	await pet.commands.get("butler").handler("hide", pet.ctx);
 	expect(pet.overlays).toEqual([menu]); expect(pet.tui.focus).toBe("menu");
 	const renders = pet.tui.renders;
 	await new Promise((resolve) => setTimeout(resolve, 220)); expect(pet.tui.renders).toBe(renders);
-	await pet.commands.get("nono").handler("show", pet.ctx);
+	await pet.commands.get("butler").handler("show", pet.ctx);
 	pet.emit("session_start"); expect(pet.overlays).toHaveLength(2);
 	pet.emit("session_shutdown"); expect(pet.overlays).toEqual([menu]);
 });
 
 test("commands and session positions restore both axes and preserve hidden working feedback", async () => {
 	const pet = setup();
-	pet.entries.push({ type: "custom", customType: "firecode-nono-position", data: { x: 0.3, y: 0.7 } });
-	pet.entries.push({ type: "custom", customType: "firecode-nono-position", data: { x: NaN, y: 1 } });
+	pet.entries.push({ type: "custom", customType: "firecode-butler-position", data: { x: 0.3, y: 0.7 } });
+	pet.entries.push({ type: "custom", customType: "firecode-butler-position", data: { x: NaN, y: 1 } });
 	pet.emit("session_start"); expect(pet.overlays[0].options.col).toBe("30%"); expect(pet.overlays[0].options.row).toBe("70%");
-	pet.emit("agent_start"); await pet.commands.get("nono").handler("hide", pet.ctx);
+	pet.emit("agent_start"); await pet.commands.get("butler").handler("hide", pet.ctx);
 	expect(pet.overlays).toHaveLength(0); expect(pet.workingVisible).toBeTrue();
-	await pet.commands.get("nono").handler("top-right", pet.ctx);
+	await pet.commands.get("butler").handler("top-right", pet.ctx);
 	expect(pet.positions.at(-1).data).toEqual({ x: 1, y: 0 }); expect(pet.workingVisible).toBeFalse();
-	await pet.commands.get("nono").handler("toString", pet.ctx);
+	await pet.commands.get("butler").handler("toString", pet.ctx);
 	expect(pet.positions).toHaveLength(1);
 });
 
@@ -141,4 +141,18 @@ test("headless sessions have no overlay; errors persist until the next turn", ()
 	pet.emit("agent_end", { messages: [{ role: "assistant", stopReason: "error" }] });
 	expect(pet.widget!.render(17).join("")).toContain("255;162;92");
 	pet.emit("agent_start"); expect(pet.widget!.render(17).join("")).not.toContain("255;162;92");
+});
+
+test("Butler restores legacy positions and newer Butler entries take precedence", async () => {
+    const pet = setup();
+    pet.entries.push({ type: "custom", customType: "firecode-nono-position", data: { x: 0.2, y: 0.6 } });
+    pet.emit("session_start");
+    expect(pet.overlays[0].options.col).toBe("20%");
+    expect(pet.overlays[0].options.row).toBe("60%");
+    await pet.commands.get("butler").handler("center", pet.ctx);
+    expect(pet.positions.at(-1).type).toBe("firecode-butler-position");
+    pet.entries.push({ type: "custom", customType: pet.positions.at(-1).type, data: pet.positions.at(-1).data });
+    pet.emit("session_start");
+    expect(pet.overlays[0].options.col).toBe("50%");
+    expect(pet.overlays[0].options.row).toBe("50%");
 });
