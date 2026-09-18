@@ -11,8 +11,9 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: oven-sh/setup-bun@v2
-      - run: bun run test:sync
-      - run: bun test packages/firecode/tests/claude-sub.test.ts packages/firecode/tests/pet.test.ts packages/firecode/tests/metrics.test.ts packages/firecode/tests/quota.test.ts
+      - run: npm install --global @earendil-works/pi-coding-agent@0.85.1
+      - run: bun run test
+      - run: bun test --timeout 15000 packages/butler-ui/provider/openai-native
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"

@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 import manifest from "../package.json";
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const FIRECODE = join(REPO, "packages", "firecode");
+const BUTLER_UI = join(REPO, "packages", "butler-ui");
 const SKILLS = join(REPO, "packages", "skills");
 const PI_CONFIG = join(REPO, "packages", "pi-config");
 const ARCHITECTURE = join(SKILLS, "development", "architecture-wiki");
@@ -76,24 +76,24 @@ const SECRET_PATTERNS = [
 	/\b(?:api[_-]?key|access[_-]?token|secret[_-]?key|password)\s*[:=]\s*(?:"[A-Za-z0-9+/=_-]{16,}"|'[A-Za-z0-9+/=_-]{16,}')/i,
 ];
 
-const assetRoots = [FIRECODE, PI_CONFIG, SKILLS,
+const assetRoots = [BUTLER_UI, PI_CONFIG, SKILLS,
 	...((manifest.pi as { prompts?: string[] }).prompts ?? []).map((path) => resolve(REPO, path))];
-let firecodeLoader: { cleanupFirecodeModules: () => Promise<void> } | undefined;
+let butlerUILoader: { cleanupButlerUIModules: () => Promise<void> } | undefined;
 
 afterAll(async () => {
-	await firecodeLoader?.cleanupFirecodeModules();
+	await butlerUILoader?.cleanupButlerUIModules();
 });
 
 test("发行包只包含允许的资产范围", async () => {
 	const paths = (await Promise.all(assetRoots.map(files))).flat();
 	expect(paths.length).toBeGreaterThan(0);
 	expect(paths.some((path) => excludedPath(relative(REPO, path)))).toBe(false);
-	expect(await exists(join(FIRECODE, "index.ts"))).toBe(true);
-	expect(await exists(join(FIRECODE, "config.example.jsonc"))).toBe(true);
-	expect(await exists(join(FIRECODE, "config.jsonc"))).toBe(false);
-	expect(await exists(join(FIRECODE, "AGENTS.md"))).toBe(true);
-	expect(await exists(join(FIRECODE, "CONTEXT.md"))).toBe(true);
-	expect(await exists(join(FIRECODE, "package.json"))).toBe(true);
+	expect(await exists(join(BUTLER_UI, "index.ts"))).toBe(true);
+	expect(await exists(join(BUTLER_UI, "config.example.jsonc"))).toBe(true);
+	expect(await exists(join(BUTLER_UI, "config.jsonc"))).toBe(false);
+	expect(await exists(join(BUTLER_UI, "AGENTS.md"))).toBe(true);
+	expect(await exists(join(BUTLER_UI, "CONTEXT.md"))).toBe(true);
+	expect(await exists(join(BUTLER_UI, "package.json"))).toBe(true);
 	expect(await exists(join(PI_CONFIG, "SYSTEM.md"))).toBe(true);
 	expect(await exists(join(ARCHITECTURE, "SKILL.md"))).toBe(true);
 	expect(await exists(join(REPO, "resources"))).toBe(false);
@@ -126,18 +126,12 @@ test("技能 Markdown 相对引用全部可达", async () => {
 	}
 });
 
-async function loadFirecodeTestModule() {
-	try {
-		return await import("../packages/firecode/tests/loader.ts");
-	} catch (error) {
-		if (String(error).includes("Cannot locate Pi sources")) return undefined;
-		throw error;
-	}
+async function loadButlerUITestModule() {
+	return import("../packages/butler-ui/tests/loader.ts");
 }
 
 test("Pi discovers the consolidated search skill and no retired tldraw prompt", async () => {
-	const host = await loadFirecodeTestModule();
-	if (!host) return;
+	const host = await loadButlerUITestModule();
 	const { DefaultResourceLoader, SettingsManager } = await import(host.PI_CODING_AGENT_URL);
 	const agentDir = await mkdtemp(join(tmpdir(), "workflow-resources-"));
 	try {
@@ -153,22 +147,20 @@ test("Pi discovers the consolidated search skill and no retired tldraw prompt", 
 	} finally { await rm(agentDir, { recursive: true, force: true }); }
 });
 
-test("FireCode 通过现有 loader 接缝可加载", async () => {
-	const loader = await loadFirecodeTestModule();
-	if (!loader) return;
-	firecodeLoader = loader;
+test("Butler UI 通过现有 loader 接缝可加载", async () => {
+	const loader = await loadButlerUITestModule();
+	butlerUILoader = loader;
 	expect(loader.PI_TUI_URL).toMatch(/^file:/);
 	expect(loader.PI_CODING_AGENT_URL).toMatch(/^file:/);
-	const module = await loader.loadFirecodeModule("index.ts");
+	const module = await loader.loadButlerUIModule("index.ts");
 	expect(typeof module.default).toBe("function");
 });
 
-test("FireCode 公开模板启用推荐工作流且不含 Bark", async () => {
-	const loader = await loadFirecodeTestModule();
-	if (!loader) return;
-	firecodeLoader = loader;
-	const module = await loader.loadFirecodeModule("config.ts", {
-		configJsonc: await readFile(join(FIRECODE, "config.example.jsonc"), "utf8"),
+test("Butler UI 公开模板启用推荐工作流且不含 Bark", async () => {
+	const loader = await loadButlerUITestModule();
+	butlerUILoader = loader;
+	const module = await loader.loadButlerUIModule("config.ts", {
+		configJsonc: await readFile(join(BUTLER_UI, "config.example.jsonc"), "utf8"),
 	});
 	const loaded = (module.loadConfig as () => { config: { features: Record<string, boolean> } })();
 	for (const feature of ["openaiNative", "pet"])

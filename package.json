@@ -2,17 +2,25 @@
   "name": "arvak-ai-dev-workflow",
   "version": "0.3.0",
   "private": true,
-  "keywords": ["pi-package"],
+  "keywords": [
+    "pi-package"
+  ],
   "pi": {
-    "extensions": ["packages/firecode/index.ts"],
-    "skills": ["packages/skills"],
-    "themes": ["packages/firecode/themes"]
+    "extensions": [
+      "packages/butler-ui/index.ts",
+      "packages/butler-ui/provider/index.ts"
+    ],
+    "skills": [
+      "packages/skills"
+    ],
+    "themes": [
+      "packages/butler-ui/themes"
+    ]
   },
   "scripts": {
-    "test": "bun test --timeout 90000 tests/asset-integrity.test.ts tests/sync-sources.test.ts tests/web-search.test.ts packages/firecode/tests",
-    "test:sync": "bun test --timeout 30000 tests/asset-integrity.test.ts tests/sync-sources.test.ts tests/web-search.test.ts",
-    "test:pi-smoke": "bun test --timeout 15000 packages/firecode/provider/openai-native/test/pi-smoke.test.ts",
+    "test": "bun test --timeout 90000 tests/asset-integrity.test.ts tests/web-search.test.ts packages/butler-ui/tests",
+    "test:pi-smoke": "bun test --timeout 15000 packages/butler-ui/provider/openai-native/test/pi-smoke.test.ts",
     "test:bcu": "npm --prefix packages/better-computer-use test",
-    "sync": "node scripts/sync-sources.mjs"
+    "test:assets": "bun test --timeout 30000 tests/asset-integrity.test.ts tests/web-search.test.ts"
   }
 }
