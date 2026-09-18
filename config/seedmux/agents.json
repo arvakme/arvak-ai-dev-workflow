@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "agents": {
+    "devin": {
+      "command": "devin",
+      "args": ["--permission-mode", "dangerous", "--respect-workspace-trust", "false"],
+      "model_flag": "--model",
+      "prompt_flag": "--"
+    },
+    "cursor-agent": {
+      "command": "cursor-agent",
+      "args": ["--yolo", "--sandbox", "disabled", "--trust"],
+      "model_flag": "--model",
+      "prompt_flag": "--"
+    },
+    "agy": {
+      "command": "agy",
+      "args": ["--dangerously-skip-permissions"],
+      "model_flag": "--model",
+      "prompt_flag": "-i"
+    }
+  }
+}

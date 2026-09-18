@@ -15,6 +15,9 @@ import stat
 import subprocess
 import tempfile
 import unittest
+from unittest.mock import patch
+import contextlib
+import io
 
 ROOT = Path(__file__).resolve().parents[1]
 SPEC = importlib.util.spec_from_file_location("seedmux_agents", ROOT / "scripts/configure-seedmux-agents.py")
@@ -35,6 +38,18 @@ class ProtectionTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Unknown"):
             m.patch(b"#!/bin/bash\necho unknown upstream\n")
 
+    def test_invalid_agent_configuration_fails_before_launch(self):
+        original = json.loads((ROOT / 'config/seedmux/agents.json').read_text())
+        with tempfile.TemporaryDirectory() as root:
+            path = Path(root) / 'agents.json'
+            for field, value in [('args', '--yolo'), ('args', ['--yolo', 42]),
+                                 ('command', 'bad\ncommand'), ('model_flag', 'not-a-flag')]:
+                config = json.loads(json.dumps(original))
+                config['agents']['cursor-agent'][field] = value
+                path.write_text(json.dumps(config))
+                with self.assertRaises(ValueError):
+                    adapter.load_agents(path)
+
 
 @unittest.skipUnless(VENDOR.is_file(), "Requires the reviewed Seedmux 0.1.60 vendor script")
 class AgentPatchTests(unittest.TestCase):
@@ -43,6 +58,7 @@ class AgentPatchTests(unittest.TestCase):
         self.addCleanup(self.tmp.cleanup)
         self.root = Path(self.tmp.name)
         self.vendor = VENDOR.read_bytes()
+        self.agents = adapter.load_agents(ROOT / "config/seedmux/agents.json")
         self.assertEqual(m.digest(self.vendor), m.VENDOR_SHA256, "New vendor must be reviewed, not silently skipped")
         self.app = self.root / "Seedmux.app"
         resources = self.app / "Contents/Resources/team"
@@ -76,23 +92,59 @@ class AgentPatchTests(unittest.TestCase):
     def test_external_cache_survives_app_update_without_touching_official_files(self):
         cache = self.root / 'cache'
         entrypoint = self.root / 'user bin/smx-team'
-        first = adapter.prepare(self.app, entrypoint, cache)
+        first = adapter.prepare(self.app, entrypoint, cache, self.agents)
         self.assertEqual(self.target.read_bytes(), self.vendor)
+
         info = self.app / 'Contents/Info.plist'
         info.write_bytes(plistlib.dumps({'CFBundleShortVersionString': '9.0.0'}))
-        self.assertEqual(adapter.prepare(self.app, entrypoint, cache), first)
+        self.assertEqual(adapter.prepare(self.app, entrypoint, cache, self.agents), first)
         vendor = self.app / 'Contents/Resources/team/smx-team'
         vendor.write_bytes(b'#!/bin/bash\necho unknown update\n')
         with self.assertRaises(ValueError):
-            adapter.prepare(self.app, entrypoint, cache)
+            adapter.prepare(self.app, entrypoint, cache, self.agents)
         self.assertEqual(self.target.read_bytes(), self.vendor)
+
+    def test_doctor_checks_compatibility_without_creating_cache(self):
+        output = io.StringIO()
+        with patch.object(adapter, 'CONFIG_PATH', ROOT / 'config/seedmux/agents.json'), \
+                patch.object(Path, 'home', return_value=self.root), \
+                patch.object(sys, 'argv', ['smx-team', '--doctor']), \
+                patch.dict(os.environ, {'BUTLER_SEEDMUX_APP': str(self.app)}), \
+                contextlib.redirect_stdout(output):
+            self.assertEqual(adapter.main(), 0)
+        self.assertTrue(json.loads(output.getvalue())['ok'])
+        self.assertFalse((self.root / '.cache').exists())
+
+    def test_editing_personal_configuration_changes_cached_launch_argv(self):
+        cli, cwd, env, requests, output, trust = self.mock_cli()
+        config = self.root / 'agents.json'
+        config.write_text(json.dumps({'schema_version': 1, 'agents': self.agents}))
+        cache = self.root / 'cache'
+        first = adapter.prepare(self.app, cli, cache, adapter.load_agents(config))
+        # A space/apostrophe/shell metacharacter is an argument, never evaluated.
+        literal = "user's value; $(touch SHOULD_NOT_EXIST) `echo no`"
+        updated = json.loads(config.read_text())
+        updated['agents']['devin']['args'] += ['--test-only', literal]
+        config.write_text(json.dumps(updated))
+        second = adapter.prepare(self.app, cli, cache, adapter.load_agents(config))
+        self.assertNotEqual(first, second)
+        cli.write_bytes(second.read_bytes().replace(b'$HOME', b'$SMX_TEST_HOME'))
+        result = subprocess.run([str(cli), 'spawn', '--agent', 'devin', '--cwd', str(cwd), '--prompt', 'test'],
+                                env=env, cwd=cwd, text=True, capture_output=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        launch = json.loads(requests.read_text().splitlines()[-1])['body']['launch']
+        ran = subprocess.run(['/bin/zsh', '-f', '-c', launch], cwd=cwd, env=env, capture_output=True, text=True)
+        self.assertEqual(ran.returncode, 0, ran.stderr)
+        argv = json.loads(output.read_text())
+        self.assertEqual(argv[argv.index('--test-only') + 1], literal)
+        self.assertFalse((cwd / 'SHOULD_NOT_EXIST').exists())
 
     def test_external_cli_never_self_installs_and_envelopes_use_external_entry(self):
         cli, cwd, env, requests, output, trust = self.mock_cli()
         # An official regenerated CLI at its own location is not an output target.
         official = Path(env['SMX_TEST_HOME']) / '.seedmux/bin/smx-team'
         external = self.root / 'user-entry'
-        external.write_bytes(adapter.build(self.vendor, external).replace(b'$HOME', b'$SMX_TEST_HOME'))
+        external.write_bytes(adapter.build(self.vendor, external, self.agents).replace(b'$HOME', b'$SMX_TEST_HOME'))
         external.chmod(0o700)
         official.write_text('# official app-owned placeholder\n')
         before = official.read_bytes()
@@ -107,7 +159,7 @@ class AgentPatchTests(unittest.TestCase):
         isolated = self.root / "home O'Brien $dollars `not-a-command`"
         path = isolated / '.seedmux/bin/smx-team'
         path.parent.mkdir(parents=True)
-        path.write_bytes(adapter.build(self.vendor, path).replace(b'$HOME', b'$SMX_TEST_HOME'))
+        path.write_bytes(adapter.build(self.vendor, path, self.agents).replace(b'$HOME', b'$SMX_TEST_HOME'))
         path.chmod(0o700)
         mockbin = self.root / 'mockbin'
         mockbin.mkdir()

@@ -29,6 +29,7 @@ HELPERS = r'''# >>> workstation Seedmux extra agents v1
 # Managed by scripts/configure-seedmux-agents.py; launch only through the official bridge.
 # Cursor --yolo respects explicit deny rules. --trust applies to this invocation's cwd.
 # Devin's workspace trust switch is invocation-local; no global trust rule is written.
+# BUTLER_EXTRA_AGENTS_CONFIG
 smx_cursor_model() {
     SMX_MODEL="$1" /usr/bin/python3 -c '
 import os, re, sys
@@ -40,16 +41,13 @@ if model and (len(model) > 512 or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._/:,=
 }
 smx_extra_launch() {
     SMX_AGENT="$1" SMX_MODEL="$2" SMX_PROMPT="$3" /usr/bin/python3 -c '
-import os, shlex
+import json, os, shlex
 agent, model, prompt = (os.environ[key] for key in ("SMX_AGENT", "SMX_MODEL", "SMX_PROMPT"))
-args = {
-    "devin": ["devin", "--permission-mode", "dangerous", "--respect-workspace-trust", "false"],
-    "cursor-agent": ["cursor-agent", "--yolo", "--sandbox", "disabled", "--trust"],
-    "agy": ["agy", "--dangerously-skip-permissions"],
-}[agent]
+config = json.loads(os.environ["SMX_EXTRA_AGENTS"])[agent]
+args = [config["command"], *config["args"]]
 if model:
-    args += ["--model", model]
-args += ["-i", prompt] if agent == "agy" else ["--", prompt]
+    args += [config["model_flag"], model]
+args += [config["prompt_flag"], prompt]
 print(shlex.join(args))
 '
 }
@@ -107,13 +105,23 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--apply", action="store_true")
     args = parser.parse_args()
+    config = Path.home() / ".config/agent-stuff/config/local/seedmux/agents.json"
+    template = Path(__file__).resolve().parents[1] / "config/seedmux/agents.json"
     source = Path(__file__).resolve().with_name("seedmux-local.py")
     link = Path.home() / ".local/bin/smx-team"
     if link.exists() and not link.is_symlink():
         parser.exit(1, f"Refusing to overwrite an existing file: {link}\n")
     if not args.apply:
-        print(f"Would link {link} to {source}; official files remain untouched")
+        print(f"Would link {link} to {source} and initialize {config} if missing; official files remain untouched")
         return
+    # Exclusive create: retain every existing personal setting, including symlinks.
+    config.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        with config.open("x") as handle:
+            handle.write(template.read_text())
+        config.chmod(0o600)
+    except FileExistsError:
+        pass
     link.parent.mkdir(parents=True, exist_ok=True)
     if link.is_symlink():
         if link.resolve() == source:
