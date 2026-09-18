@@ -11,20 +11,3 @@
 ## 会话与重载兼容
 
 `firecode-butler-position`、`firecode-nono-position` 的历史会话记录继续可读；位置、widget 和 herdr source ID 保持不变。工具原型 patch 的 `pi.firecode.*` Symbol 保持不变，防止热重载重复包装。额度缓存的 `firecode-quota-*` 名称保持不变，沿用缓存与失败退避。这些是有意保留的兼容标识，不是安装入口或新配置路径。`PI_CLAUDE_*` 环境变量与已有 JSON 字段不变。
-
-## 主控集成尚未提交的改动
-
-本次工作基线为 `4dd6325`，没有把原检出的未提交内容纳入本次提交。集成时先保存原始 diff/未跟踪文件，在新目录上保留这些内容；不得以本分支旧基线内容覆盖它们。
-
-| 原路径（相对 `packages/firecode/`） | 目标路径（相对 `packages/butler-ui/`） | 集成要求 |
-| --- | --- | --- |
-| `session/pet.ts` | `session/pet.ts` | 保留原检出当前行为；本任务仅加兼容 ID 说明，无 UI 算法改动 |
-| `session/butler-frames.ts` | `session/butler-frames.ts` | 保留原检出当前像素/segment 实现 |
-| `tests/pet.test.ts` | `tests/pet.test.ts` | 保留原检出测试；若导入 loader 旧 helper，按下述映射修改 |
-| `tests/appearance.test.ts` | `tests/appearance.test.ts` | 保留原检出测试并映射 loader helper |
-| `themes/butler.json`、`themes/butler-dark.json` | 同名文件 | 保留原内容及未跟踪主题；清单使用目录发现，无需逐个列出 |
-| `AGENTS.md`、`session/AGENTS.md` | 同名文件 | 合并当前文档约束与目录/入口说明，不能整文件替换 |
-
-测试 helper 映射：`loadFirecodeModule` → `loadButlerUIModule`，`cleanupFirecodeModules` → `cleanupButlerUIModules`，`copyFirecodeSource` → `copyButlerUISource`，`FIRECODE_DIR` → `BUTLER_UI_DIR`。运行时类型映射：`FireCodeConfig` → `ButlerUIConfig`，`FireCodeKeys` → `ButlerUIKeys`。根 `AGENTS.md`、README、SETUP 也应按差异合并；原检出的 skills、素材与脚本改动由其所有者集成。
-
-旧 `sync-sources` 脚本及专用测试已移除。资产检查改用 `bun run test:assets`；完整 UI 验证用 `bun run test`，供应商 CLI 验证用 `bun run test:pi-smoke`。测试宿主优先解析 PATH 中已安装的 Pi，也可显式设置 `PI_PACKAGES_DIR` 使用依赖完整的源码；找不到宿主会失败，不会静默跳过。
