@@ -64,6 +64,29 @@ class DefaultsTests(unittest.TestCase):
                 m.plan(h)
             self.assertEqual((h / '.seedmux/config.toml').read_text(), '[agents]\n')
 
+    def test_atomic_updates_preserve_central_config_symlinks(self):
+        with tempfile.TemporaryDirectory() as d:
+            h = Path(d)
+            (h / '.seedmux').mkdir()
+            (h / '.codex').mkdir()
+            central = h / 'central'
+            central.mkdir()
+            seed_source = central / 'seedmux.toml'
+            codex_source = central / 'codex.toml'
+            seed_source.write_text('[agents]\nclaude_yolo = false\n')
+            codex_source.write_text('approval_policy = "on-request"\n')
+            (h / '.seedmux/config.toml').write_text('[agents]\n')
+            seed_link = h / '.seedmux/config.local.toml'
+            codex_link = h / '.codex/config.toml'
+            seed_link.symlink_to(seed_source)
+            codex_link.symlink_to(codex_source)
+            m.apply(m.plan(h))
+            self.assertTrue(seed_link.is_symlink())
+            self.assertTrue(codex_link.is_symlink())
+            self.assertTrue(tomllib.loads(seed_source.read_text())['agents']['claude_yolo'])
+            self.assertEqual(tomllib.loads(codex_source.read_text())['approval_policy'], 'never')
+            self.assertEqual(m.plan(h), [])
+
     def test_concurrent_edit_is_preserved(self):
         with tempfile.TemporaryDirectory() as d:
             p = Path(d) / 'config.toml'

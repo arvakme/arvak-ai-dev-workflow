@@ -95,11 +95,11 @@ def set_value(text, table, key, value):
 
 def plan(home):
     seedmux = home / ".seedmux/config.toml"
-    codex = home / ".codex/config.toml"
+    codex = (home / ".codex/config.toml").resolve()
     if not seedmux.is_file() or not codex.is_file():
         raise ValueError("Install Seedmux and Codex before applying these personal defaults")
     result = []
-    path = home / ".seedmux/config.local.toml"
+    path = (home / ".seedmux/config.local.toml").resolve()
     before = path.read_text() if path.exists() else None
     after = before or "# Personal overrides; the app owns config.toml.\n"
     for agent in AGENTS:
