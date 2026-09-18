@@ -15,11 +15,11 @@
 pi install /Users/zhijie/Devs/workstation
 ```
 
-`~/.pi/agent/settings.json` 的 `packages` 用绝对路径 `/Users/zhijie/Devs/workstation`，不要相对路径。`pi list` 里应能看到本仓库目录。
+`pi list` 里应能看到本仓库目录。本机 settings 入口是 `~/.pi/agent/settings.json`，经软链加载 `~/.config/agent-stuff/config/local/pi-coding/settings.json`；`packages` 使用当前工作副本的绝对路径，避免相对路径随工作目录改变。
 
 Pi 内不安装 Antigravity / Cursor 的代理扩展；这些 CLI 由 Seedmux 调度。模型目录使用 Pi 的 `pi update --models` 刷新，个人模型覆盖与凭据留在本机。
 
-FireCode 运行配置：`~/.pi/agent/extensions/firecode/config.jsonc`，模板是 `packages/firecode/config.example.jsonc`。通知走本机 Moshi（Pi / Cursor / Grok 都已 hook），仓库不含 Bark。
+Butler UI 运行配置：`~/.pi/agent/extensions/butler-ui/config.jsonc`，模板是 `packages/butler-ui/config.example.jsonc`。首次加载会在新路径缺失时保留原字节迁移 `extensions/firecode/config.jsonc`，不删除旧文件；两份不同会提示且优先新路径，详见 [迁移说明](packages/butler-ui/docs/migration.md)。UI 入口 `index.ts` 和 provider 入口 `provider/index.ts` 由包清单分别加载，不要再单独添加旧入口。通知走本机 Moshi（Pi / Cursor / Grok 都已 hook），仓库不含 Bark。
 
 ## Seedmux 与 Agora
 
@@ -38,9 +38,9 @@ python3.11 scripts/configure-seedmux.py --apply
 
 它在 `~/.seedmux/config.local.toml` 启用 Seedmux 支持的六种 Agent 的 YOLO 开关，不修改应用生成的 `config.toml`，并设置 Codex 的持久权限默认值，覆盖 `smx-team` 和恢复会话省略全权参数的路径；保留其余配置并生成备份。不改应用生成的 shim。运行中的 Agent 保持旧权限，新启动/恢复时才读取；显式 CLI 参数仍优先。目录 trust 与执行权限是不同检查，派发必须传真实绝对 cwd，并由官方 `smx-team` 预置信任。已停在权限弹窗的 pane 先恢复到输入态，不能把消息直接注入弹窗。
 
-Devin / Cursor / agy 使用外置入口 `~/.local/bin/smx-team`；`python3 scripts/configure-seedmux-agents.py --apply` 安装，`smx-team --doctor` 检查兼容性。它复用官方 pane 桥接，不扩展原生菜单，不改应用生成的 CLI；启动参数按已审查的官方脚本摘要适配。应用版本升级但脚本未变时继续可用，未知启动实现明确报错；已有 worker 的回执等普通命令仍交给官方 CLI。不能靠新增未支持的 `*_yolo` 配置键接入 Agent。
+Devin / Cursor / agy 的 CLI 接入由 `scripts/configure-seedmux-agents.py` 管理；默认预览，`--apply` 应用。外置入口是 `~/.local/bin/smx-team`，不改应用生成的 CLI。默认模板源为 `config/seedmux/agents.json`，应用时仅在缺失时初始化 `~/.config/agent-stuff/config/local/seedmux/agents.json`，已有用户值不会被覆盖。wrapper 每次 spawn 读取外置配置，其中 `command`、`args`、`model_flag`、`prompt_flag` 可自行编辑；`cursor` 是 `cursor-agent` 的别名。它复用官方 pane 桥接，不扩展原生菜单；运行与恢复权限按各 CLI 的启动参数分别设置，不能靠新增一个未支持的 `*_yolo` 配置键接入 Agent。启动实现按官方脚本摘要审查；应用版本变化但脚本不变时继续可用，未知脚本拒绝启动，既有 worker 的普通回执仍走官方 CLI。运行 `smx-team --doctor` 可只读检查接入状态，不会创建 Agent 或写缓存。
 
-Butler 随 FireCode 加载，`features.pet` 控制开关；重载 Pi 后在右上角常驻。全屏模式可鼠标拖动，`/butler` 可显示或定位，无需安装额外应用。Pi 设置中的 `butler` 主题与挂件配色一致。
+Butler 随 Butler UI 加载，`features.pet` 控制开关；重载 Pi 后在右上角常驻。全屏模式可鼠标拖动，`/butler` 可显示或定位，无需安装额外应用。Pi 设置中的 `butler` 主题与挂件配色一致。
 
 ## BCU
 

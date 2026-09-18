@@ -3,7 +3,7 @@
   "baseline_version": 1,
   "source_commit": "b6c04f9eed117c1616c7401b92f08ac9bfcf4f90",
   "source_path_at_commit": "packages/firecode/session/nono-frames.ts",
-  "runtime_source": "packages/firecode/session/butler-frames.ts",
+  "runtime_source": "packages/butler-ui/session/butler-frames.ts",
   "terminal_size": {
     "columns": 17,
     "rows": 6

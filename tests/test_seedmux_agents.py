@@ -50,6 +50,20 @@ class ProtectionTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     adapter.load_agents(path)
 
+    def test_schema_rejects_unknown_keys_and_boolean_version(self):
+        original = json.loads((ROOT / 'config/seedmux/agents.json').read_text())
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'agents.json'
+            for change in ('version', 'extra-key', 'newline', 'other-home'):
+                config = json.loads(json.dumps(original))
+                if change == 'version': config['schema_version'] = True
+                elif change == 'extra-key': config['agents']['devin']['unknown'] = 'value'
+                elif change == 'newline': config['agents']['devin']['args'] = ['bad\narg']
+                else: config['agents']['devin']['command'] = '~another-user/bin/devin'
+                path.write_text(json.dumps(config))
+                with self.assertRaises(ValueError):
+                    adapter.load_agents(path)
+
 
 @unittest.skipUnless(VENDOR.is_file(), "Requires the reviewed Seedmux 0.1.60 vendor script")
 class AgentPatchTests(unittest.TestCase):
@@ -138,6 +152,23 @@ class AgentPatchTests(unittest.TestCase):
         argv = json.loads(output.read_text())
         self.assertEqual(argv[argv.index('--test-only') + 1], literal)
         self.assertFalse((cwd / 'SHOULD_NOT_EXIST').exists())
+
+    def test_home_relative_executable_is_expanded_before_shell_quoting(self):
+        cli, cwd, env, requests, output, trust = self.mock_cli()
+        config = self.root / 'agents.json'
+        self.agents['devin']['command'] = '~/mockbin/devin'
+        config.write_text(json.dumps({'schema_version': 1, 'agents': self.agents}))
+        with patch.object(Path, 'home', return_value=self.root):
+            agents = adapter.load_agents(config)
+        cli.write_bytes(adapter.build(self.vendor, cli, agents).replace(b'$HOME', b'$SMX_TEST_HOME'))
+        result = subprocess.run([str(cli), 'spawn', '--agent', 'devin', '--cwd', str(cwd), '--prompt', 'test'],
+                                env=env, cwd=cwd, text=True, capture_output=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        launch = json.loads(requests.read_text().splitlines()[-1])['body']['launch']
+        self.assertEqual(shlex.split(launch)[0], str(self.root / 'mockbin/devin'))
+        ran = subprocess.run(['/bin/zsh', '-f', '-c', launch], cwd=cwd, env=env, capture_output=True, text=True)
+        self.assertEqual(ran.returncode, 0, ran.stderr)
+        self.assertTrue(output.exists())
 
     def test_external_cli_never_self_installs_and_envelopes_use_external_entry(self):
         cli, cwd, env, requests, output, trust = self.mock_cli()

@@ -24,25 +24,10 @@ spec.loader.exec_module(patcher)
 CONFIG_PATH = Path.home() / '.config/agent-stuff/config/local/seedmux/agents.json'
 
 
-def load_agents(path):
-    """Accept argv data, never shell fragments; reject typos before creating panes."""
-    config = json.loads(path.read_text())
-    if not isinstance(config, dict) or set(config) != {'schema_version', 'agents'} or config['schema_version'] != 1:
-        raise ValueError('agents.json requires schema_version=1 and agents')
-    agents = config['agents']
-    if not isinstance(agents, dict) or set(agents) != {'devin', 'cursor-agent', 'agy'}:
-        raise ValueError('agents.json requires devin, cursor-agent and agy; cursor is an alias')
-    for name, item in agents.items():
-        if not isinstance(item, dict) or set(item) != {'command', 'args', 'model_flag', 'prompt_flag'}:
-            raise ValueError(f'{name}: expected command, args, model_flag, prompt_flag')
-        if not isinstance(item['args'], list):
-            raise ValueError(f'{name}: args must be an argv array')
-        for value in [item['command'], item['model_flag'], item['prompt_flag'], *item['args']]:
-            if not isinstance(value, str) or not value or any(ord(c) < 32 for c in value):
-                raise ValueError(f'{name}: arguments must be nonempty strings without control characters')
-        if item['command'].startswith('-') or any(not item[k].startswith('-') for k in ('model_flag', 'prompt_flag')):
-            raise ValueError(f'{name}: invalid executable or argument flag')
-    return agents
+schema_spec = importlib.util.spec_from_file_location('seedmux_agent_config', Path(__file__).resolve().with_name('seedmux-agent-config.py'))
+schema = importlib.util.module_from_spec(schema_spec)
+schema_spec.loader.exec_module(schema)
+load_agents = schema.load_agents
 
 
 def build(source, entrypoint, agents):
