@@ -99,15 +99,13 @@ def plan(home):
     if not seedmux.is_file() or not codex.is_file():
         raise ValueError("Install Seedmux and Codex before applying these personal defaults")
     result = []
-    for path in [seedmux, home / ".seedmux/config.local.toml"]:
-        if not path.exists():
-            continue
-        before = path.read_text()
-        after = before
-        for agent in AGENTS:
-            after = set_value(after, ("agents",), f"{agent}_yolo", True)
-        if after != before:
-            result.append((path, before, after))
+    path = home / ".seedmux/config.local.toml"
+    before = path.read_text() if path.exists() else None
+    after = before or "# Personal overrides; the app owns config.toml.\n"
+    for agent in AGENTS:
+        after = set_value(after, ("agents",), f"{agent}_yolo", True)
+    if after != before:
+        result.append((path, before, after))
     before = codex.read_text()
     parsed = tomllib.loads(before)
     after = set_value(before, (), "approval_policy", "never")
@@ -125,21 +123,21 @@ def plan(home):
 
 def apply(changes):
     for path, before, _ in changes:
-        if path.read_text() != before:
+        if (path.read_text() if path.exists() else None) != before:
             raise RuntimeError(f"Config changed concurrently: {path}")
     for path, before, after in changes:
-        mode = path.stat().st_mode & 0o777
+        mode = path.stat().st_mode & 0o777 if path.exists() else 0o600
         # Keep backups beside the originals; never commit personal configuration.
         with tempfile.NamedTemporaryFile(prefix=path.name + ".before-yolo-", dir=path.parent,
                                          delete=False, mode="w") as backup:
-            backup.write(before)
+            backup.write(before or "")
         with tempfile.NamedTemporaryFile(prefix=path.name + ".", dir=path.parent,
                                          delete=False, mode="w") as output:
             output.write(after)
             temp = output.name
         try:
             os.chmod(temp, mode)
-            if path.read_text() != before:
+            if (path.read_text() if path.exists() else None) != before:
                 raise RuntimeError(f"Config changed concurrently: {path}")
             os.replace(temp, path)
         finally:

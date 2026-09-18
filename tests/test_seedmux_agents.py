@@ -23,6 +23,9 @@ m = importlib.util.module_from_spec(SPEC)
 import sys
 sys.modules[SPEC.name] = m
 SPEC.loader.exec_module(m)
+ADAPTER = importlib.util.spec_from_file_location('seedmux_local', ROOT / 'scripts/seedmux-local.py')
+adapter = importlib.util.module_from_spec(ADAPTER)
+ADAPTER.loader.exec_module(adapter)
 VENDOR = Path(os.environ.get("SEEDMUX_TEAM_VENDOR_SCRIPT", "/Applications/Seedmux.app/Contents/Resources/team/smx-team"))
 PANE = "11111111-1111-4111-8111-111111111111"
 
@@ -70,67 +73,41 @@ class AgentPatchTests(unittest.TestCase):
                 return text.split(start, 1)[1].split("\n}\n", 1)[0]
             self.assertEqual(function(expected.decode()), function(self.vendor.decode()))
 
-    def test_apply_backs_up_exact_content_preserves_mode_and_can_restore(self):
-        self.target.write_bytes(self.legacy())
-        before = self.target.read_bytes()
-        backup = m.apply(m.plan(self.target, self.app))
-        self.assertEqual(backup.read_bytes(), before)
-        self.assertEqual(stat.S_IMODE(backup.stat().st_mode), 0o751)
-        self.assertEqual(stat.S_IMODE(self.target.stat().st_mode), 0o751)
-        self.assertIsNone(m.plan(self.target, self.app))
-        count = len(list(self.root.iterdir()))
-        self.assertIsNone(m.apply(m.plan(self.target, self.app)))
-        self.assertEqual(len(list(self.root.iterdir())), count)
-        patched = self.target.read_bytes()
-        dry_restore = subprocess.run([sys.executable, str(ROOT / 'scripts/configure-seedmux-agents.py'),
-                                      '--script', str(self.target), '--seedmux-app', str(self.app),
-                                      '--restore', str(backup)], capture_output=True, text=True)
-        self.assertEqual(dry_restore.returncode, 0, dry_restore.stderr)
-        self.assertIn('Restore mode', dry_restore.stdout)
-        self.assertEqual(self.target.read_bytes(), patched)
-        second_backup = m.apply(m.plan(self.target, self.app, restore=backup))
-        self.assertEqual(second_backup.read_bytes(), patched)
-        self.assertEqual(self.target.read_bytes(), before)
-
-    def test_default_dry_run_does_not_write(self):
-        result = subprocess.run([sys.executable, str(ROOT / 'scripts/configure-seedmux-agents.py'),
-                                 '--script', str(self.target), '--seedmux-app', str(self.app)],
-                                capture_output=True, text=True)
-        self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("Would update", result.stdout)
+    def test_external_cache_survives_app_update_without_touching_official_files(self):
+        cache = self.root / 'cache'
+        entrypoint = self.root / 'user bin/smx-team'
+        first = adapter.prepare(self.app, entrypoint, cache)
         self.assertEqual(self.target.read_bytes(), self.vendor)
-        self.assertEqual(list(self.root.glob('smx-team.before-agents-*')), [])
-
-    def test_unknown_build_vendor_and_local_modifications_are_refused(self):
-        with self.assertRaises(ValueError):
-            m.patch(m.patch(self.vendor) + b'\n# unrelated custom patch\n')
-        self.target.write_bytes(self.vendor + b'\n# preserve user modifications\n')
-        with self.assertRaises(ValueError):
-            m.plan(self.target, self.app)
-        self.assertTrue(self.target.read_bytes().endswith(b'# preserve user modifications\n'))
-        self.target.write_bytes(self.vendor)
         info = self.app / 'Contents/Info.plist'
-        info.write_bytes(plistlib.dumps({'CFBundleShortVersionString': '0.1.61', 'CFBundleVersion': '62'}))
+        info.write_bytes(plistlib.dumps({'CFBundleShortVersionString': '9.0.0'}))
+        self.assertEqual(adapter.prepare(self.app, entrypoint, cache), first)
+        vendor = self.app / 'Contents/Resources/team/smx-team'
+        vendor.write_bytes(b'#!/bin/bash\necho unknown update\n')
         with self.assertRaises(ValueError):
-            m.plan(self.target, self.app)
+            adapter.prepare(self.app, entrypoint, cache)
+        self.assertEqual(self.target.read_bytes(), self.vendor)
 
-    def test_concurrent_change_and_symlink_are_preserved(self):
-        change = m.plan(self.target, self.app)
-        self.target.write_bytes(b'#!/bin/bash\necho newer\n')
-        with self.assertRaisesRegex(RuntimeError, 'concurrently'):
-            m.apply(change)
-        self.assertEqual(self.target.read_bytes(), b'#!/bin/bash\necho newer\n')
-        self.assertEqual(list(self.root.glob('smx-team.before-agents-*')), [])
-        alias = self.root / 'alias'
-        alias.symlink_to(self.target)
-        with self.assertRaisesRegex(ValueError, 'symlink'):
-            m.plan(alias, self.app)
+    def test_external_cli_never_self_installs_and_envelopes_use_external_entry(self):
+        cli, cwd, env, requests, output, trust = self.mock_cli()
+        # An official regenerated CLI at its own location is not an output target.
+        official = Path(env['SMX_TEST_HOME']) / '.seedmux/bin/smx-team'
+        external = self.root / 'user-entry'
+        external.write_bytes(adapter.build(self.vendor, external).replace(b'$HOME', b'$SMX_TEST_HOME'))
+        external.chmod(0o700)
+        official.write_text('# official app-owned placeholder\n')
+        before = official.read_bytes()
+        result = subprocess.run([str(external), 'spawn', '--agent', 'cursor', '--cwd', str(cwd), '--prompt', 'test'],
+                                env=env, cwd=cwd, text=True, capture_output=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(official.read_bytes(), before)
+        body = json.loads(requests.read_text().splitlines()[-1])['body']
+        self.assertIn(str(external), body['launch'])
 
     def mock_cli(self):
         isolated = self.root / "home O'Brien $dollars `not-a-command`"
         path = isolated / '.seedmux/bin/smx-team'
         path.parent.mkdir(parents=True)
-        path.write_bytes(m.patch(self.vendor).replace(b'$HOME', b'$SMX_TEST_HOME'))
+        path.write_bytes(adapter.build(self.vendor, path).replace(b'$HOME', b'$SMX_TEST_HOME'))
         path.chmod(0o700)
         mockbin = self.root / 'mockbin'
         mockbin.mkdir()
