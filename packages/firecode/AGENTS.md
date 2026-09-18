@@ -19,4 +19,4 @@ Pi 定制层：终端界面、预设、请求配置和 Butler 终端挂件。所
 
 测试见根 `package.json`；`tests/loader.ts` 通过 `PI_PACKAGES_DIR` 定位宿主，并把运行源码复制到临时目录以隔离配置。
 
-`themes/butler.json` 是 Pi 标准主题，包清单负责发现，用户设置负责选择；扩展不强行重设主题。冰蓝与青色沿用 Butler，警告与错误保留暖色以区分语义。
+`themes/butler.json`（浅色）和 `themes/butler-dark.json`（深色）是 Pi 标准主题，包清单负责发现，用户设置负责选择；`theme: "butler/butler-dark"` 使用宿主原生终端明暗检测与切换通知，不另建轮询。终端不转发通知时只能启动时检测或手动选择。扩展不强行重设主题。冰蓝与青色沿用 Butler，警告与错误保留暖色以区分语义。

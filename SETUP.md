@@ -12,10 +12,10 @@
 ## Pi package
 
 ```bash
-pi install ~/Devs/workstation
+pi install /Users/zhijie/Devs/workstation
 ```
 
-`pi list` 里应能看到本仓库目录。
+`~/.pi/agent/settings.json` 的 `packages` 用绝对路径 `/Users/zhijie/Devs/workstation`，不要相对路径。`pi list` 里应能看到本仓库目录。
 
 Pi 内不安装 Antigravity / Cursor 的代理扩展；这些 CLI 由 Seedmux 调度。模型目录使用 Pi 的 `pi update --models` 刷新，个人模型覆盖与凭据留在本机。
 
@@ -36,9 +36,9 @@ python3.11 scripts/configure-seedmux.py
 python3.11 scripts/configure-seedmux.py --apply
 ```
 
-它启用 Seedmux 支持的六种 Agent 的 YOLO 开关，并设置 Codex 的持久权限默认值，覆盖 `smx-team` 和恢复会话省略全权参数的路径；保留其余配置并生成备份。不改应用生成的 shim。运行中的 Agent 保持旧权限，新启动/恢复时才读取；显式 CLI 参数仍优先。目录 trust 与执行权限是不同检查，派发必须传真实绝对 cwd，并由官方 `smx-team` 预置信任。已停在权限弹窗的 pane 先恢复到输入态，不能把消息直接注入弹窗。
+它在 `~/.seedmux/config.local.toml` 启用 Seedmux 支持的六种 Agent 的 YOLO 开关，不修改应用生成的 `config.toml`，并设置 Codex 的持久权限默认值，覆盖 `smx-team` 和恢复会话省略全权参数的路径；保留其余配置并生成备份。不改应用生成的 shim。运行中的 Agent 保持旧权限，新启动/恢复时才读取；显式 CLI 参数仍优先。目录 trust 与执行权限是不同检查，派发必须传真实绝对 cwd，并由官方 `smx-team` 预置信任。已停在权限弹窗的 pane 先恢复到输入态，不能把消息直接注入弹窗。
 
-Devin / Cursor 的 CLI 接入由 `scripts/configure-seedmux-agents.py` 管理；默认预览，`--apply` 应用。它复用官方 pane 桥接，不扩展原生菜单。补丁锁定已审查的 Seedmux 版本，应用升级后需重跑；未知版本拒绝修改。运行与恢复权限按各 CLI 的启动参数分别设置，不能靠新增一个未支持的 `*_yolo` 配置键接入 Agent。
+Devin / Cursor / agy 使用外置入口 `~/.local/bin/smx-team`；`python3 scripts/configure-seedmux-agents.py --apply` 安装，`smx-team --doctor` 检查兼容性。它复用官方 pane 桥接，不扩展原生菜单，不改应用生成的 CLI；启动参数按已审查的官方脚本摘要适配。应用版本升级但脚本未变时继续可用，未知启动实现明确报错；已有 worker 的回执等普通命令仍交给官方 CLI。不能靠新增未支持的 `*_yolo` 配置键接入 Agent。
 
 Butler 随 FireCode 加载，`features.pet` 控制开关；重载 Pi 后在右上角常驻。全屏模式可鼠标拖动，`/butler` 可显示或定位，无需安装额外应用。Pi 设置中的 `butler` 主题与挂件配色一致。
 

@@ -7,10 +7,10 @@ arvak 的开发工作流：**Agora 白板梳理项目 → Seedmux 调度 Agents 
 ## 用法
 
 ```bash
-pi install ~/Devs/workstation
+pi install /Users/zhijie/Devs/workstation
 ```
 
-仓库根 `package.json` 声明了 `pi.extensions`（FireCode）和 `pi.skills`。运行配置在 `~/.pi/agent/extensions/firecode/config.jsonc`。Pi 自己的模型/密钥在 `~/.pi/agent/`，不进这个仓库。不要把 `packages/pi-config/SYSTEM.md` 覆盖到本机 `SYSTEM.md`。通知走 Moshi，这个仓库没有 Bark。
+`settings.json` 的 `packages` 用绝对路径，不要相对 `../../Devs/workstation`。仓库根 `package.json` 声明了 `pi.extensions`（FireCode）和 `pi.skills`。运行配置在 `~/.pi/agent/extensions/firecode/config.jsonc`。Pi 自己的模型/密钥在 `~/.pi/agent/`，不进这个仓库；本机 `~/.pi/agent` 的入口通过软链读取 `~/.config/agent-stuff` 中的配置源。不要把 `packages/pi-config/SYSTEM.md` 覆盖到本机 `SYSTEM.md`。通知走 Moshi，这个仓库没有 Bark。
 
 BCU 需要原生 helper，见 `packages/better-computer-use/README.md`。
 

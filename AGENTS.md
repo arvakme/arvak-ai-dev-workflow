@@ -2,6 +2,8 @@
 
 Pi 包入口是仓库根 `package.json`：`pi.extensions` → FireCode，`pi.skills` → `packages/skills`。
 
+本机活指针是 `~/.pi/agent/settings.json` 的 `packages`：`/Users/zhijie/Devs/workstation`（绝对路径，不要写成相对 `../../Devs/workstation`）。运行配置在 `~/.pi/agent/`（FireCode 活配置 `extensions/firecode/config.jsonc`），不进这个仓库；本机 `~/.pi/agent` 的入口通过软链读取 `~/.config/agent-stuff` 中的配置源。还在改源码，不要 `pi install git:`。
+
 - 改 FireCode preset：改 `~/.pi/agent/extensions/firecode/config.jsonc`
 - 改工具行 / 状态栏 / Butler 挂件：读 `packages/firecode/AGENTS.md`
 - 改 BCU：读 `packages/better-computer-use/README.md`
